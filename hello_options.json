@@ -1,0 +1,17 @@
+{
+  "backend": "PAPIv2",
+  "google_project": "broad-epi-dev",
+  "jes_gcs_root": "gs://broad-epi-dev-cromwell/workflows",
+  "monitoring_image": "us.gcr.io/broad-epi-dev/cromwell-task-monitor-bq",
+  "final_workflow_log_dir": "gs://broad-epi-dev-cromwell-logs",
+  "default_runtime_attributes": {
+    "disks": "local-disk 10 HDD",
+    "maxRetries": 1,
+    "preemptible": 3,
+    "zones": [
+      "us-east1-b",
+      "us-east1-c",
+      "us-east1-d"
+    ]
+  }
+}
