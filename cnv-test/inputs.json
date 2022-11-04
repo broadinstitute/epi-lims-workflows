@@ -1,0 +1,11 @@
+{
+  "CNVAnalysis.bam": "gs://broad-epi-dev-aggregated-alns/aggregated_aln_028227.bam",
+  "CNVAnalysis.binSize": 5000,
+  "CNVAnalysis.cnvRatiosBed": null,
+  "CNVAnalysis.genomeName": "hg19",
+  "CNVAnalysis.binSize": 5000,
+  "CNVAnalysis.bypassCNVRescalingStep": false,
+  "CNVAnalysis.dockerImage": "us.gcr.io/broad-epi/epi-analysis",
+  "CNVAnalysis.outFilesDir": "gs://broad-epi-aggregated-alns/",
+  "CNVAnalysis.outJsonDir": "gs://broad-epi-cnv-output-jsons/"
+}

@@ -4,7 +4,7 @@ from cromwell_tools.cromwell_auth import CromwellAuth
 
 # Authenticate
 auth = CromwellAuth.harmonize_credentials(
-    service_account_key='keys/cloudbuild_sa_key-dev.json',
+    service_account_key='../keys/cloudbuild_sa_key-dev.json',
     url='https://cromwell.caas-prod.broadinstitute.org'
 )
 print(auth.header)
@@ -12,10 +12,10 @@ print(auth.header)
 # Submit job
 response = api.submit(
     auth=auth, 
-    #wdl_file='lims_test.wdl', 
-    wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/lims_test.wdl',
-    inputs_files=['hello_inputs.json'],
-    options_file='hello_options.json',
+    wdl_file='cnv.wdl',
+    #wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-firebase/master/api/src/workflows/cnv/CNVAnalysis.wdl?token=GHSAT0AAAAAABXPLLE5R3ONZ3DSFSN3VECGY3FMM3Q',
+    inputs_files=['inputs.json'],
+    options_file='options.json',
     collection_name='broad-epi-dev-beta2'
 )
 print(response.text)
