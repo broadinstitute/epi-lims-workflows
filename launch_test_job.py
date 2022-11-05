@@ -4,7 +4,7 @@ from cromwell_tools.cromwell_auth import CromwellAuth
 
 # Authenticate
 auth = CromwellAuth.harmonize_credentials(
-    service_account_key='keys/cloudbuild_sa_key-dev.json',
+    service_account_key='keys/lims_cromwell_user_sa_key-dev.json',
     url='https://cromwell.caas-prod.broadinstitute.org'
 )
 print(auth.header)
