@@ -1,0 +1,23 @@
+substitutions:
+  _ENV: dev
+  _DELETION_POLICY: delete
+  _REPO_OWNER: broadinstitute
+  _GCR_REGISTRY: us.gcr.io
+  _BUCKETS_REGION: us-east1
+
+# options:
+#   env:
+#   - genotyping_image=${_GCR_REGISTRY}/${PROJECT_ID}/genotyping
+
+steps:
+- name: gcr.io/cloud-builders/gcloud
+  id: deploy-functions
+  entrypoint: deploy-functions.sh
+  env:
+  - VERSION=git-${SHORT_SHA}
+  - BUCKETS_REGION=${_BUCKETS_REGION}
+  args:
+  - ${_ENV}
+  - ${_DELETION_POLICY}
+
+timeout: 800s

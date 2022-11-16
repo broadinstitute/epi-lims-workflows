@@ -5,7 +5,7 @@
   "CNVAnalysis.genomeName": "hg19",
   "CNVAnalysis.binSize": 5000,
   "CNVAnalysis.bypassCNVRescalingStep": false,
-  "CNVAnalysis.dockerImage": "us.gcr.io/broad-epi/epi-analysis",
-  "CNVAnalysis.outFilesDir": "gs://broad-epi-aggregated-alns/",
-  "CNVAnalysis.outJsonDir": "gs://broad-epi-cnv-output-jsons/"
+  "CNVAnalysis.dockerImage": "us.gcr.io/broad-epi-dev/epi-analysis",
+  "CNVAnalysis.outFilesDir": "gs://broad-epi-dev-aggregated-alns/",
+  "CNVAnalysis.outJsonDir": "gs://broad-epi-dev-cnv-output-jsons/"
 }
