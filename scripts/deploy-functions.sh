@@ -26,7 +26,7 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.email\",
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
-  }" \
+  }")
 
 echo $CROMWELL_SA_TOKEN
 
