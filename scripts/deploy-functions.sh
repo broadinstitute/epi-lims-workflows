@@ -29,7 +29,7 @@ CLOUDBUILD_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.email\",
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
-  }")
+  }"| python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 echo $CLOUDBUILD_SA_TOKEN
 
 # Get an auth token for the Cromwell SA
