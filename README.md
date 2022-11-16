@@ -1,1 +1,2 @@
 - create cloudbuild trigger: Cloud Build > Triggers > Create trigger ($main^ for dev, $release^ for prod)
+- chmod 777 deploy-functions.sh to allow cloudbuild to execute
