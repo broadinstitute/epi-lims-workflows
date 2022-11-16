@@ -16,6 +16,7 @@ echo $PROJECT
 TOKEN=$(gcloud auth print-access-token)
 
 echo $TOKEN
+echo $(gcloud config list account --format "value(core.account)")
 
 # Get an auth token for the Cromwell SA
 CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
@@ -32,13 +33,15 @@ echo $CROMWELL_SA_TOKEN
 
 # Register the SA with Sam
 curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
+echo "Registered SA with Sam"
 
 # Allow SA to start workflows in the collection
 curl -sH "Authorization: Bearer ${TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
- 
+echo "Allowed SA to start workflows in the collection"
+
 # Create key for SA 
 CROMWELL_SA_KEY=$(gcloud iam service-accounts keys create /dev/stdout --iam-account "${CROMWELL_SA}")
-
+echo "Created SA key"
 echo $CROMWELL_SA_KEY
 
 # Deploy Cromwell launcher function, passing in key as environment variable
@@ -52,6 +55,8 @@ gcloud functions deploy python-http-function \
     --trigger-http \
     --allow-unauthenticated
     --set-env-vars KEY=$CROMWELL_SA_KEY
+
+echo "Deployed Cromwell launcher function"
 
 # NOTE: Could also store key in runtime config so that functions can access it
 # gcloud beta runtime-config configs variables set --config-name=cromwell-config cromwell-key $CROMWELL_SA_KEY
