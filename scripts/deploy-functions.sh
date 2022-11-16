@@ -41,7 +41,7 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.email\",
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
-  }")
+  }" | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 echo $CROMWELL_SA_TOKEN
 
 # Register the SA with Sam
