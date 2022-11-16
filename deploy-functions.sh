@@ -56,7 +56,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 # Create a key for Cromwell SA, used for launching Cromwell jobs
 CROMWELL_SA_KEY=$(gcloud iam service-accounts keys create /dev/stdout --iam-account "${CROMWELL_SA}" \
-  | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))')
+  | python3 -c 'import json,sys; key=json.load(sys.stdin); key["private_key"]="".join(key["private_key"].splitlines()).replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", ""); print(json.dumps(key))')
 
 # Deploy Cromwell launcher function, passing in key as environment variable
 # TODO non-destructively use --update-env-vars instead?
