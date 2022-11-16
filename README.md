@@ -1,1 +1,1 @@
-- create cloudbuild trigger
+- create cloudbuild trigger: Cloud Build > Triggers > Create trigger ($main^ for dev, $release^ for prod)
