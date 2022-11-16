@@ -1,7 +1,7 @@
 PROJECT=$(gcloud config get-value project)
 echo $PROJECT
 
-# # TODO: replace broad-epi-dev with this variable
+# # TODO: replace broad-epi-dev with this variable - access _ENV from cloudbuild vars
 # PROJECT=$(gcloud config get-value project)
 # REGION="us-east1"
 # COLLECTION="broad-epi-dev-beta2"
