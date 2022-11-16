@@ -20,7 +20,4 @@ steps:
   - ${_ENV}
   - ${_DELETION_POLICY}
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-
 timeout: 800s

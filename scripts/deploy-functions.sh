@@ -36,7 +36,7 @@ curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" "https://sam.dsde-prod.bro
 echo "Registered SA with Sam"
 
 # Allow SA to start workflows in the collection
-curl -sH "Authorization: Bearer ${TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
+curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
 echo "Allowed SA to start workflows in the collection"
 
 # Create key for SA 
