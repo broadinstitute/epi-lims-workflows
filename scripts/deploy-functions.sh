@@ -6,18 +6,33 @@ set -euo pipefail
 PROJECT=$(gcloud config get-value project)
 REGION="us-east1"
 COLLECTION="broad-epi-dev-beta2"
-# TODO create the Cromwell SA?
-# TODO make sure cloudbuild has SA User permissions for this SA?
+
+# The SA that allows us to call external services such as Sam
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
+
+# The SA that will be used to launch Cromwell jobs
 CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
 
-# Use local cloudbuild google identity to authenticate to IAM API
-echo "Getting local token"
+# Use local google identity, the default cloudbuild service account
+    # <project_id>@cloudbuild.gserviceaccount.com
 TOKEN=$(gcloud auth print-access-token)
-echo $TOKEN
+
+# Get auth token for Cromwell SA
+CROMWELL_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
+  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"scope\": [
+        \"https://www.googleapis.com/auth/userinfo.email\",
+        \"https://www.googleapis.com/auth/userinfo.profile\"
+    ]
+  }" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
+
+# Register the Cromwell SA with Sam
+curl -sH "Authorization: Bearer ${CROMWELL_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
 
 # Get an auth token for cloudbuild SA
-echo "Getting cloudbuild SA token"
 CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CLOUDBUILD_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
@@ -28,32 +43,17 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
     ]
   }" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
-echo $CLOUDBUILD_TOKEN
-
-echo "Getting Cromwell SA token"
-CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
-  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"scope\": [
-        \"https://www.googleapis.com/auth/userinfo.email\",
-        \"https://www.googleapis.com/auth/userinfo.profile\"
-    ]
-  }" \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
-echo $CROMWELL_SA_TOKEN
-
-# Register the Cromwell SA with Sam
-echo "Registering Cromwell SA with Sam"
-curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
 
 # Allow SA to start workflows in the dev collection
-echo "Allow Cromwell SA to start workflows in collection"
 curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
+
+gcloud iam service-accounts add-iam-policy-binding \
+    667661088669-compute@developer.gserviceaccount.com \
+    --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
+    --role roles/iam.serviceAccountUser
 
 # Deploy Cromwell launcher function, passing in key as environment variable
 # TODO non-destructively use --update-env-vars instead?
-echo "Deploy function"
 gcloud functions deploy python-http-function \
     --gen2 \
     --runtime=python310 \

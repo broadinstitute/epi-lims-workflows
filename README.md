@@ -1,2 +1,5 @@
 - create cloudbuild trigger: Cloud Build > Triggers > Create trigger ($main^ for dev, $release^ for prod)
-- chmod 777 deploy-functions.sh to allow cloudbuild to execute
+- chmod 755 deploy-functions.sh to allow cloudbuild to execute
+- need lims-cromwell-user SA 
+- need cloudbuild SA -- different from default cloudbuild SA
+- default cloudbuild SA needs Service Account Token Creator permission 
