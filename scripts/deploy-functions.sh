@@ -17,10 +17,12 @@ echo $PROJECT
     # <project_id>@cloudbuild.gserviceaccount.com
 TOKEN=$(gcloud auth print-access-token)
 
+echo "Getting default SA token"
 echo $TOKEN
 echo $(gcloud config list account --format "value(core.account)")
 
 # Get an auth token for cloudbuild
+echo "Getting cloudbuild SA token"
 CLOUDBUILD_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CLOUDBUILD_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
@@ -33,6 +35,7 @@ CLOUDBUILD_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
 echo $CLOUDBUILD_SA_TOKEN
 
 # Get an auth token for the Cromwell SA
+echo "Getting Cromwell SA token"
 CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
@@ -45,6 +48,7 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
 echo $CROMWELL_SA_TOKEN
 
 # Register the SA with Sam
+echo "Starting Sam stuff"
 curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
 echo "Registered SA with Sam"
 
