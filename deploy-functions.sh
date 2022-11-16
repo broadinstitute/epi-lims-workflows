@@ -47,10 +47,15 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
 # Allow SA to start workflows in the dev collection
 curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
 
+# TODO add comment for this
+# TODO use google account ID var
 gcloud iam service-accounts add-iam-policy-binding \
     667661088669-compute@developer.gserviceaccount.com \
     --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
+
+# Create a key for Cromwell SA, used for launching Cromwell jobs
+CROMWELL_SA_KEY=$(gcloud iam service-accounts keys create /dev/stdout --iam-account "${CROMWELL_SA}")
 
 # Deploy Cromwell launcher function, passing in key as environment variable
 # TODO non-destructively use --update-env-vars instead?
