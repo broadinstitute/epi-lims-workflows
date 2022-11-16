@@ -31,7 +31,7 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
 echo $CLOUDBUILD_TOKEN
 
 echo "Getting Cromwell SA token"
-CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" \
+CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
   -d "{
