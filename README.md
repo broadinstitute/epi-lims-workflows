@@ -2,4 +2,4 @@
 - chmod 755 deploy-functions.sh to allow cloudbuild to execute
 - need lims-cromwell-user SA 
 - need cloudbuild SA -- different from default cloudbuild SA
-- default cloudbuild SA needs Service Account Token Creator permission 
+- default cloudbuild SA needs Service Account Token Creator, Service Account Key Admin roles

@@ -66,7 +66,7 @@ gcloud functions deploy python-http-function \
     --source=. \
     --entry-point=launch_cromwell \
     --trigger-http \
-    --allow-unauthenticated
+    --allow-unauthenticated \
     --set-env-vars KEY=$CROMWELL_SA_KEY
 
 echo "Deployed Cromwell launcher function"
