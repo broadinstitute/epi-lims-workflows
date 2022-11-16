@@ -8,18 +8,32 @@ REGION="us-east1"
 COLLECTION="broad-epi-dev-beta2"
 # TODO create the Cromwell SA?
 # TODO make sure cloudbuild has SA User permissions for this SA?
+CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
 CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
 
 echo $PROJECT
 
-# Get cloudbuild SA token
+# Get token for default cloudbuild service account
+    # <project_id>@cloudbuild.gserviceaccount.com
 TOKEN=$(gcloud auth print-access-token)
 
 echo $TOKEN
 echo $(gcloud config list account --format "value(core.account)")
 
+# Get an auth token for cloudbuild
+CLOUDBUILD_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
+  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CLOUDBUILD_SA}:generateAccessToken" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"scope\": [
+        \"https://www.googleapis.com/auth/userinfo.email\",
+        \"https://www.googleapis.com/auth/userinfo.profile\"
+    ]
+  }")
+echo $CLOUDBUILD_SA_TOKEN
+
 # Get an auth token for the Cromwell SA
-CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
+CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
   -d "{
@@ -28,11 +42,10 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
   }")
-
 echo $CROMWELL_SA_TOKEN
 
 # Register the SA with Sam
-curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
+curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
 echo "Registered SA with Sam"
 
 # Allow SA to start workflows in the collection
