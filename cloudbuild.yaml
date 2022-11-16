@@ -19,7 +19,8 @@ steps:
   args:
   - ${_ENV}
   - ${_DELETION_POLICY}
-  options:
-    logging: NONE
+  
+options:
+  logging: NONE
 
 timeout: 800s
