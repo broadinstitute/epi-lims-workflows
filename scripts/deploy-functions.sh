@@ -31,7 +31,7 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
 echo $CLOUDBUILD_TOKEN
 
 echo "Getting Cromwell SA token"
-CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
+CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
   -d "{
@@ -39,7 +39,8 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.email\",
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
-  }")
+  }" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 echo $CROMWELL_SA_TOKEN
 
 # Register the Cromwell SA with Sam
