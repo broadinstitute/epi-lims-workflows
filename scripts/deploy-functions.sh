@@ -11,32 +11,13 @@ COLLECTION="broad-epi-dev-beta2"
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
 CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
 
-echo $PROJECT
-
-# Get token for default cloudbuild service account
-    # <project_id>@cloudbuild.gserviceaccount.com
+# Use local cloudbuild google identity to authenticate to IAM API
+echo "Getting local token"
 TOKEN=$(gcloud auth print-access-token)
-
-echo "Getting default SA token"
 echo $TOKEN
-echo $(gcloud config list account --format "value(core.account)")
 
-# Get an auth token for cloudbuild
-echo "Getting cloudbuild SA token"
-CLOUDBUILD_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
-  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CLOUDBUILD_SA}:generateAccessToken" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"scope\": [
-        \"https://www.googleapis.com/auth/userinfo.email\",
-        \"https://www.googleapis.com/auth/userinfo.profile\"
-    ]
-  }"| python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
-echo $CLOUDBUILD_SA_TOKEN
-
-# Get an auth token for the Cromwell SA
 echo "Getting Cromwell SA token"
-CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
+CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
   -H "Content-Type: application/json" \
   -d "{
@@ -44,25 +25,35 @@ CROMWELL_SA_TOKEN=$(curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" \
         \"https://www.googleapis.com/auth/userinfo.email\",
         \"https://www.googleapis.com/auth/userinfo.profile\"
     ]
-  }")
+  }" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 echo $CROMWELL_SA_TOKEN
 
-# Register the SA with Sam
-echo "Starting Sam stuff"
-curl -sH "Authorization: Bearer ${CLOUDBUILD_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
-echo "Registered SA with Sam"
+# Register the Cromwell SA with Sam
+echo "Registering Cromwell SA with Sam"
+curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
 
-# Allow SA to start workflows in the collection
-curl -sH "Authorization: Bearer ${CROMWELL_SA_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
-echo "Allowed SA to start workflows in the collection"
+# Get an auth token for cloudbuild SA
+echo "Getting cloudbuild SA token"
+CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
+  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CLOUDBUILD_SA}:generateAccessToken" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"scope\": [
+        \"https://www.googleapis.com/auth/userinfo.email\",
+        \"https://www.googleapis.com/auth/userinfo.profile\"
+    ]
+  }" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
+echo $CLOUDBUILD_TOKEN
 
-# Create key for SA 
-CROMWELL_SA_KEY=$(gcloud iam service-accounts keys create /dev/stdout --iam-account "${CROMWELL_SA}")
-echo "Created SA key"
-echo $CROMWELL_SA_KEY
+# Allow SA to start workflows in the dev collection
+echo "Allow Cromwell SA to start workflows in collection"
+curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
 
 # Deploy Cromwell launcher function, passing in key as environment variable
 # TODO non-destructively use --update-env-vars instead?
+echo "Deploy function"
 gcloud functions deploy python-http-function \
     --gen2 \
     --runtime=python310 \
