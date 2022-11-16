@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -euo pipefail
+
 PROJECT=$(gcloud config get-value project)
 echo $PROJECT
 
