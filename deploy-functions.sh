@@ -92,9 +92,6 @@ CURRENT_KEY=$(gcloud iam service-accounts keys list \
     --managed-by user \
     --limit 1)
 
-echo "Current key"
-echo $CURRENT_KEY
-
 # if it doesn't exist, encrypt it and store it in the cromwell
 # config as a key-value pair indexed by "cromwell-sa-key"
 if [ -z "${CURRENT_KEY}" ]; then

@@ -8,6 +8,17 @@ from google.cloud import runtimeconfig
 
 @functions_framework.http
 def launch_cromwell(request):
+    config_name = os.environ.get(
+        'CONFIG', 'CONFIG environment variable is not set')
+    key_name = os.environ.get('KEY', 'KEY environment variable is not set')
+
+    client = runtimeconfig.Client()
+    print('got client')
+    config = client.config(config_name)
+    print('got config')
+    key = config.get_variable(key_name)
+    print('encrypted key:', key)
+
     # TODO fetch SA key either from fn env variable or runtime config
     # auth = CromwellAuth.harmonize_credentials(
     #     service_account_key='../keys/lims_cromwell_user_sa_key-dev.json',
@@ -23,14 +34,5 @@ def launch_cromwell(request):
     #     collection_name='broad-epi-dev-beta2'
     # )
     # return response.text
-
-    config_name = os.environ.get('CONFIG', 'Config env var is not set')
-    key_name = os.environ.get('KEY', 'Config env var is not set')
-    print('config name:', config_name)
-    print('key name:', key_name)
-
-    client = runtimeconfig.Client()
-    config = client.config(config_name)
-    print('encrypted key:', config.get_variable(key_name))
 
     return 'Hello World!'
