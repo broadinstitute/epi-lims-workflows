@@ -9,17 +9,21 @@ from cromwell_tools.cromwell_auth import CromwellAuth
 @functions_framework.http
 def launch_cromwell(request):
     # Grab Cromwell SA key from the Runtime Config
-    config_name = os.environ.get(
-        'CONFIG', 'CONFIG environment variable is not set')
-    key_name = os.environ.get('KEY', 'KEY environment variable is not set')
+    # config_name = os.environ.get(
+    #     'CONFIG', 'CONFIG environment variable is not set')
+    # key_name = os.environ.get('KEY', 'KEY environment variable is not set')
 
-    client = runtimeconfig.Client()
-    config = client.config(config_name)
-    key = config.get_variable(key_name)
+    # client = runtimeconfig.Client()
+    # config = client.config(config_name)
+    # key = config.get_variable(key_name)
 
-    # Decrypt key
-    print('encrypted key value')
-    print(key.value)
+    # # Decrypt key
+    # print('encrypted key value')
+    # print(key.value)
+
+    key = os.environ.get('KEY', 'KEY environment variable is not set')
+    print('encrypted key')
+    print(key)
 
     # Authenticate to Cromwell
     # auth = CromwellAuth.harmonize_credentials(

@@ -70,13 +70,6 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
 # required for Cromwell auth in order to submit jobs, and is
 # retrieved by the launch_cromwell cloud function
 
-# first make sure there's a runtime config
-if [ -z "$(gcloud beta runtime-config configs list | grep $CONFIG)" ]; then
-  gcloud beta runtime-config configs create $CONFIG
-else
-  echo "Runtime Config already exists"
-fi
-
 set_config() {
   gcloud beta runtime-config configs variables set --config-name "$1" "$2" --is-text
 }
@@ -90,6 +83,13 @@ encrypt() {
     --plaintext-file - \
     --ciphertext-file -
 }
+
+# first make sure there's a runtime config
+if [ -z "$(gcloud beta runtime-config configs list | grep $CONFIG)" ]; then
+  gcloud beta runtime-config configs create $CONFIG
+else
+  echo "Runtime Config already exists"
+fi
 
 # check if key exists
 CURRENT_KEY=$(gcloud iam service-accounts keys list \
@@ -110,7 +110,12 @@ else
   echo "Cromwell credentials already exist"
 fi
 
-# Deploy Cromwell launcher function
+ENCRYPTED_KEY=$(gcloud beta runtime-config configs variables \
+  get-value "${CONFIG_KEY}" \
+  --config-name "${CONFIG}")
+
+# Deploy Cromwell launcher function, passing encrypted key
+# as env variable
 gcloud functions deploy cromwell-launcher \
     --gen2 \
     --runtime=python310 \
@@ -119,7 +124,8 @@ gcloud functions deploy cromwell-launcher \
     --entry-point=launch_cromwell \
     --trigger-http \
     --allow-unauthenticated \
-    --set-env-vars CONFIG=$CONFIG,KEY=$CONFIG_KEY
+    --set-env-vars KEY=$ENCRYPTED_KEY
+    # --set-env-vars CONFIG=$CONFIG,KEY=$CONFIG_KEY
 
 echo "Deployed Cromwell launcher function"
 
