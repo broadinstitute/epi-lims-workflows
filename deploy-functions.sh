@@ -54,12 +54,50 @@ gcloud iam service-accounts add-iam-policy-binding \
     --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
 
-# Create a key for Cromwell SA, used for launching Cromwell jobs
-CROMWELL_SA_KEY=$(gcloud iam service-accounts keys create /dev/stdout --iam-account "${CROMWELL_SA}" \
-  | python3 -c 'import json,sys; key=json.load(sys.stdin); key["private_key"]="".join(key["private_key"].splitlines()).replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", ""); print(json.dumps(key))')
+# if no key exists for the Cromwell SA, create one, encrypt it
+# using KMS, and store it in the Runtime Config. This key is
+# required for Cromwell auth in order to submit jobs, and is
+# retrieved by the launch_cromwell cloud function
 
-# Deploy Cromwell launcher function, passing in key as environment variable
-# TODO non-destructively use --update-env-vars instead?
+output() {
+  local deployment="${2:-${DEPLOYMENT}}"
+  gcloud deployment-manager deployments describe "${deployment}" \
+    --format "value(outputs.filter(name:$1).extract(finalValue).flatten())"
+}
+
+set_config() {
+  gcloud beta runtime-config configs variables set --config-name "$1" "$2" --is-text
+}
+
+# TODO change firebase key to a new one
+encrypt() {
+  gcloud kms encrypt \
+    --location "global" \
+    --keyring "firebase" \
+    --key "firebase" \
+    --plaintext-file - \
+    --ciphertext-file -
+}
+
+CURRENT_KEY=$(gcloud iam service-accounts keys list \
+    --iam-account "${CROMWELL_SA}" \
+    --managed-by user \
+    --limit 1)
+
+echo "Current key"
+echo $CURRENT_KEY
+
+if [ -z "${CURRENT_KEY}" ]; then
+  echo "Creating new cromwell SA credentials file"
+  gcloud iam service-accounts keys create /dev/stdout \
+    --iam-account "${CROMWELL_SA}" \
+    | encrypt \
+    | base64 -w 0 \
+    | set_config cromwell userServiceAccountJson
+fi
+
+# TODO rename function
+# Deploy Cromwell launcher function
 gcloud functions deploy python-http-function \
     --gen2 \
     --runtime=python310 \
@@ -67,13 +105,9 @@ gcloud functions deploy python-http-function \
     --source=. \
     --entry-point=launch_cromwell \
     --trigger-http \
-    --allow-unauthenticated \
-    --set-env-vars KEY=$CROMWELL_SA_KEY
+    --allow-unauthenticated
 
 echo "Deployed Cromwell launcher function"
-
-# NOTE: Could also store key in runtime config so that functions can access it
-# gcloud beta runtime-config configs variables set --config-name=cromwell-config cromwell-key $CROMWELL_SA_KEY
 
 # Deploy Cromwell parser functions
 # TODO
