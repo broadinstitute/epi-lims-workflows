@@ -106,7 +106,7 @@ def launch_cromwell(request):
             )
             responses.append({
                 'subj_name': req['subj_name'],
-                'response': response.text
+                'response': json.loads(response.text)
             })
         else:
             responses.append({
