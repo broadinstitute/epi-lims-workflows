@@ -111,7 +111,7 @@ def launch_cromwell(request):
         else:
             responses.append({
                 'subj_name': req['subj_name'],
-                'status': 'cromwell rejected the job'
+                'response': {'status': 'cromwell rejected the job'}
             })
 
     # TODO return 200
