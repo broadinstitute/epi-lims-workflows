@@ -1,5 +1,6 @@
 import os
 import functions_framework
+from google.cloud import runtimeconfig
 
 # import cromwell
 # import custom lims api wrapper
@@ -23,6 +24,13 @@ def launch_cromwell(request):
     # )
     # return response.text
 
-    print(os.environ.get('KEY', 'Specified environment variable is not set.'))
+    config_name = os.environ.get('CONFIG', 'Config env var is not set')
+    key_name = os.environ.get('KEY', 'Config env var is not set')
+    print('config name:', config_name)
+    print('key name:', key_name)
+
+    client = runtimeconfig.Client()
+    config = client.config(config_name)
+    print('encrypted key:', config.get_variable(key_name))
 
     return 'Hello World!'
