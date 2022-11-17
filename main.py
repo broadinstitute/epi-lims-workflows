@@ -1,6 +1,7 @@
 import os
+import json
 import functions_framework
-from google.cloud import runtimeconfig
+from google.cloud import kms
 
 from cromwell_tools import api
 from cromwell_tools.cromwell_auth import CromwellAuth
@@ -8,22 +9,25 @@ from cromwell_tools.cromwell_auth import CromwellAuth
 
 @functions_framework.http
 def launch_cromwell(request):
-    # Grab Cromwell SA key from the Runtime Config
-    # config_name = os.environ.get(
-    #     'CONFIG', 'CONFIG environment variable is not set')
-    # key_name = os.environ.get('KEY', 'KEY environment variable is not set')
+    # Grab KMS key information and encrypted Cromwell SA credentials
+    # from environment variables passed in via cloudbuild
+    encrypted_key = os.environ.get(
+        'KEY', 'KEY environment variable is not set')
+    project = os.environ.get(
+        'PROJECT', 'PROJECT environment variable is not set')
+    kms_key = os.environ.get(
+        'KMS_KEY', 'KMS_KEY environment variable is not set')
+    kms_location = os.environ.get(
+        'KMS_LOCATION', 'KMS_LOCATION environment variable is not set')
 
-    # client = runtimeconfig.Client()
-    # config = client.config(config_name)
-    # key = config.get_variable(key_name)
+    # Decrypt the Cromwell SA credentials
+    client = kms.KeyManagementServiceClient()
+    key_name = client.crypto_key_path(
+        project, kms_location, kms_key, kms_key)
+    decrypt_response = client.decrypt(
+        request={'name': key_name, 'ciphertext': encrypted_key})
 
-    # # Decrypt key
-    # print('encrypted key value')
-    # print(key.value)
-
-    key = os.environ.get('KEY', 'KEY environment variable is not set')
-    print('encrypted key')
-    print(key)
+    print(json.loads(decrypt_response.plaintext))
 
     # Authenticate to Cromwell
     # auth = CromwellAuth.harmonize_credentials(

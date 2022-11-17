@@ -29,6 +29,11 @@ CONFIG="lims-cromwell-config"
 # Name of key where the Cromwell SA credentials are stored in the Runtime Config
 CONFIG_KEY="cromwell-sa-key"
 
+# TODO change firebase key to a new one
+# Name and location of the KMS key used to encrypt/decrypt the Cromwell SA creds
+KMS_KEY="firebase"
+KMS_LOCATION="global"
+
 # Get auth token for Cromwell SA
 CROMWELL_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${CROMWELL_SA}:generateAccessToken" \
@@ -74,12 +79,11 @@ set_config() {
   gcloud beta runtime-config configs variables set --config-name "$1" "$2" --is-text
 }
 
-# TODO change firebase key to a new one
 encrypt() {
   gcloud kms encrypt \
-    --location "global" \
-    --keyring "firebase" \
-    --key "firebase" \
+    --location $KMS_LOCATION \
+    --keyring $KMS_KEY \
+    --key $KMS_KEY \
     --plaintext-file - \
     --ciphertext-file -
 }
@@ -124,8 +128,7 @@ gcloud functions deploy cromwell-launcher \
     --entry-point=launch_cromwell \
     --trigger-http \
     --allow-unauthenticated \
-    --set-env-vars KEY=$ENCRYPTED_KEY
-    # --set-env-vars CONFIG=$CONFIG,KEY=$CONFIG_KEY
+    --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT
 
 echo "Deployed Cromwell launcher function"
 
