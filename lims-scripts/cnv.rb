@@ -2,25 +2,25 @@
 
 extend UI
 require 'set'
+require_script 'submit_job'
 
 def wce_sort_fn(a, b)
-    a['updated_at'] == b['updated_at'] ? a['id'] - b['id'] : (a['updated_at'] <= b['updated_at'] ? -1 : 1)
+    a[:updated_at] == b[:updated_at] ? a[:id] - b[:id] : (a[:updated_at] <= b[:updated_at] ? -1 : 1)
 end
 
 def get_app_wce(alignment)
     app = alignment['Aligment Post Processing']
     if app
         return {
-            'biosam' => app['BioSam'],
-            'id' => app.id,
-            'name' => app.name,
-            'updated_at' => app.updated_at,
-            'cnv_ratios_bed' => app['CNV Ratios BED URI']
+            :biosam => app['BioSam'],
+            :id => app.id,
+            :name => app.name,
+            :updated_at => app.updated_at,
+            :cnv_ratios_bed => app['CNV Ratios BED URI']
         }
     return {}
 
-submitted = []
-failures = []
+params = []
 
 # Each subject is an APP
 subjects.each do |app|
@@ -92,35 +92,17 @@ subjects.each do |app|
 
         input_control = wce.name
     end
-
-    # Send request to launch job
-    url = "https://cromwell-launcher-hxpirayhja-ue.a.run.app"
-    params = {
+    
+    params.push({
         :workflow => 'cnv',
-        :app_name => app.name,
-        :app_id => app.id,
+        :subj_name => app.name,
+        :subj_id => app.id,
         :bam => app['BAM Filename URI'],
         :cnv_ratios_bed => cnv_ratios_bed,
         :genome_name => ref_seq.name.gsub('_picard', ''),
         :bypass_rescaling => bypass_rescaling,
         :input_control => input_control
-    }
-    response = call_external_service(url, nil) do |req, http|
-        req['Content-Type'] = "application/json; encoding='utf-8'; odata=verbose"
-        req['Accept'] = "application/json"
-        req.body = params.to_json
-    end
-    if response['status'] == 'Submitted'
-        submitted.push(app.name)
-    else
-        failures.push({
-            :app => app.name,
-            :failure => response['status']
-        })
-    end
+    })
 end
 
-submitted_string = submitted.join(', ') || 'None'
-failure_string = failures.length() > 0 ? '<br>' + failures.map{ |f| "<b>#{f['app']}: #{f['failure']}"}.join('<br>') : 'None'
-
-show_message("<b>Submitted:</b> #{submitted_string}<br><br><b>Failures: </b>#{failure_string}")
+submit_job(params)

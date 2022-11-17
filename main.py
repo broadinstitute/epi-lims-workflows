@@ -60,14 +60,7 @@ formatters = {
 def launch_cromwell(request):
     # TODO authentication
     # TODO validate request
-    # TODO batch processing (auth, env, kms, cromwell auth)
-
     request_json = request.get_json(silent=True)
-    request_args = request.args
-
-    print('args / json')
-    print(request_json)
-    print(request_args)
 
     # Grab KMS key information and encrypted Cromwell SA credentials
     # from environment variables passed in via cloudbuild
@@ -98,17 +91,28 @@ def launch_cromwell(request):
     )
 
     options = get_runtime_options(project)
-    inputs = formatters[request_json['workflow']](project, request_json)
 
-    # Submit job
-    response = api.submit(
-        auth=auth,
-        wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
-        inputs_files=[inputs],
-        options_file=options,
-        collection_name='broad-epi-dev-beta2'
-    )
+    # Submit jobs
+    responses = []
+    for req in request_json['jobs']:
+        inputs = formatters[req['workflow']](project, req)
+        if request_json.get('app_id') == 385029:
+            response = api.submit(
+                auth=auth,
+                wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
+                inputs_files=[inputs],
+                options_file=options,
+                collection_name='broad-epi-dev-beta2'
+            )
+            responses.append({
+                'subj_name': req['subj_name'],
+                'status': response['status']
+            })
+        else:
+            responses.append({
+                'subj_name': req['subj_name'],
+                'status': 'cromwell rejected the job'
+            })
 
-    if request_json.get('app_id') == 385029:
-        return response.text
-    return {'status': 'dummy error message'}
+    # TODO return 200
+    return {'jobs': responses}
