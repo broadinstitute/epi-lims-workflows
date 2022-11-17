@@ -18,6 +18,7 @@ def launch_cromwell(request):
     key = config.get_variable(key_name)
 
     # Decrypt key
+    print('encrypted key value')
     print(key.value)
 
     # Authenticate to Cromwell
