@@ -111,7 +111,7 @@ gcloud functions deploy cromwell-launcher \
     --entry-point=launch_cromwell \
     --trigger-http \
     --allow-unauthenticated \
-    --set-env-vars CONFIG=$CONFIG, KEY=$CONFIG_KEY
+    --set-env-vars CONFIG=$CONFIG,KEY=$CONFIG_KEY
 
 echo "Deployed Cromwell launcher function"
 
