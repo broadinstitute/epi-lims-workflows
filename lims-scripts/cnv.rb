@@ -19,6 +19,9 @@ def get_app_wce(alignment)
         }
     return {}
 
+submitted = []
+failures = []
+
 # Each subject is an APP
 subjects.each do |app|
     ref_seq = app['Reference Sequence']
@@ -33,7 +36,7 @@ subjects.each do |app|
         params[:tool_message] = "Reference Sequence is missing for #{app.name}"
         return
     end
-    if biosams.length != 1
+    if biosams.length() != 1
         params[:tool_message] = "Alignments for #{app.name} must come from exactly 1 BioSam"
         return
     end
@@ -50,7 +53,7 @@ subjects.each do |app|
     })
     wces = alignments.map{ |a| get_app_wce(a) }
     sorted_wces = wces.sort! { |wce1, wce2| wce_sort_fn(wce1, wce2) }
-    most_recent_wce = sorted_wces.length ? sorted_wces.pop() : nil
+    most_recent_wce = sorted_wces.length() > 0 ? sorted_wces.pop() : nil
 
     # Define the input control. If CNV rescaling step isn't bypassed,
     # it's either the Input Control Override specified in lims or the
@@ -93,12 +96,12 @@ subjects.each do |app|
     # Send request to launch job
     url = "https://cromwell-launcher-hxpirayhja-ue.a.run.app"
     params = {
-        :workflow => 'cnv'
+        :workflow => 'cnv',
         :app_name => app.name,
         :app_id => app.id,
         :bam => app['BAM Filename URI'],
         :cnv_ratios_bed => cnv_ratios_bed,
-        :genome_name => ref_seq.name.gsub('_picard', '')
+        :genome_name => ref_seq.name.gsub('_picard', ''),
         :bypass_rescaling => bypass_rescaling,
         :input_control => input_control
     }
@@ -107,6 +110,17 @@ subjects.each do |app|
         req['Accept'] = "application/json"
         req.body = params.to_json
     end
-    params[:tool_message] = response
+    if response['status'] == 'Submitted'
+        submitted.push(app.name)
+    else
+        failures.push({
+            :app => app.name,
+            :failure => response['status']
+        })
+    end
 end
 
+submitted_string = submitted.join(', ') || 'None'
+failure_string = failures.length() > 0 ? '<br>' + failures.map{ |f| "<b>#{f['app']}: #{f['failure']}"}.join('<br>') : 'None'
+
+show_message("<b>Submitted:</b> #{submitted_string}<br><br><b>Failures: </b>#{failure_string}")

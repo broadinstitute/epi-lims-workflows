@@ -109,4 +109,6 @@ def launch_cromwell(request):
         collection_name='broad-epi-dev-beta2'
     )
 
-    return response.text
+    if request_json.get('id') == 385029:
+        return response.text
+    return {'status': 'dummy error message'}
