@@ -2,7 +2,7 @@
 
 extend UI
 require 'set'
-require_script 'submit_job'
+require_script 'submit_jobs'
 
 def wce_sort_fn(a, b)
     a[:updated_at] == b[:updated_at] ? a[:id] - b[:id] : (a[:updated_at] <= b[:updated_at] ? -1 : 1)
@@ -105,4 +105,4 @@ subjects.each do |app|
     })
 end
 
-submit_job(params)
+submit_jobs(params)
