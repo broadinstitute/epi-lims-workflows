@@ -96,7 +96,7 @@ def launch_cromwell(request):
     responses = []
     for req in request_json['jobs']:
         inputs = formatters[req['workflow']](project, req)
-        if request_json.get('subj_id') == 385029:
+        if req.get('subj_id') == 385029:
             response = api.submit(
                 auth=auth,
                 wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
