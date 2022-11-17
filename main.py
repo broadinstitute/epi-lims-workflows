@@ -2,24 +2,25 @@ import os
 import functions_framework
 from google.cloud import runtimeconfig
 
-# import cromwell
-# import custom lims api wrapper
+from cromwell_tools import api
+from cromwell_tools.cromwell_auth import CromwellAuth
 
 
 @functions_framework.http
 def launch_cromwell(request):
+    # Grab Cromwell SA key from the Runtime Config
     config_name = os.environ.get(
         'CONFIG', 'CONFIG environment variable is not set')
     key_name = os.environ.get('KEY', 'KEY environment variable is not set')
 
     client = runtimeconfig.Client()
-    print('got client')
     config = client.config(config_name)
-    print('got config')
     key = config.get_variable(key_name)
-    print('encrypted key:', key)
 
-    # TODO fetch SA key either from fn env variable or runtime config
+    # Decrypt key
+    print(key.value)
+
+    # Authenticate to Cromwell
     # auth = CromwellAuth.harmonize_credentials(
     #     service_account_key='../keys/lims_cromwell_user_sa_key-dev.json',
     #     url='https://cromwell.caas-prod.broadinstitute.org'

@@ -7,11 +7,17 @@ PROJECT=$(gcloud config get-value project)
 REGION="us-east1"
 COLLECTION="broad-epi-dev-beta2"
 
+# The default SA identity that runs this cloudbuild
+# TODO
+
 # The SA that allows us to call external services such as Sam
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
 
 # The SA that will be used to launch Cromwell jobs
 CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
+
+# The default SA identity used by 2nd gen cloud functions
+FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
 
 # Use local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
@@ -54,9 +60,8 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
 curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
 
 # TODO add comment for this
-# TODO use google account ID var
-gcloud iam service-accounts add-iam-policy-binding \
-    667661088669-compute@developer.gserviceaccount.com \
+# TODO use google account ID var and replace cloudbuild SA with var
+gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
     --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
 
