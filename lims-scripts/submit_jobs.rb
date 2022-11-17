@@ -24,7 +24,7 @@ def submit_jobs(params)
     end
 
     submitted_string = submitted.join(', ') || 'None'
-    failure_string = failures.length() > 0 ? '<br>' + failures.map{ |f| "<b>#{f['subj_name']}:</b> #{f['status']}"}.join('<br>') : 'None'
+    failure_string = failures.length() > 0 ? '<br>' + failures.map{ |f| "<b>#{f[:subj_name]}:</b> #{f[:status]}"}.join('<br>') : 'None'
 
     show_message("<b>Submitted:</b> #{submitted_string}<br><br><b>Failures: </b>#{failure_string}")
 end
