@@ -66,7 +66,11 @@ gcloud iam service-accounts add-iam-policy-binding \
 # retrieved by the launch_cromwell cloud function
 
 # first make sure there's a runtime config
-gcloud beta runtime-config configs create $CONFIG
+if [ -z "$(gcloud beta runtime-config configs list | grep $CONFIG)" ]; then
+  gcloud beta runtime-config configs create $CONFIG
+else
+  echo "Runtime Config already exists"
+fi
 
 set_config() {
   gcloud beta runtime-config configs variables set --config-name "$1" "$2" --is-text
@@ -94,12 +98,14 @@ echo $CURRENT_KEY
 # if it doesn't exist, encrypt it and store it in the cromwell
 # config as a key-value pair indexed by "cromwell-sa-key"
 if [ -z "${CURRENT_KEY}" ]; then
-  echo "Creating new cromwell SA credentials file"
+  echo "Creating new Cromwell SA credentials file"
   gcloud iam service-accounts keys create /dev/stdout \
     --iam-account "${CROMWELL_SA}" \
     | encrypt \
     | base64 -w 0 \
     | set_config $CONFIG $CONFIG_KEY
+else
+  echo "Cromwell credentials already exist"
 fi
 
 # Deploy Cromwell launcher function
