@@ -69,8 +69,6 @@ def launch_cromwell(request):
     )
 
     options = get_runtime_options(project)
-    print('options')
-    print(options)
     inputs = dict_to_bytes_io({
         "CNVAnalysis.bam": "gs://broad-epi-dev-aggregated-alns/aggregated_aln_028227.bam",
         "CNVAnalysis.binSize": 5000,
@@ -82,8 +80,6 @@ def launch_cromwell(request):
         "CNVAnalysis.outFilesDir": "gs://broad-epi-dev-aggregated-alns/",
         "CNVAnalysis.outJsonDir": "gs://broad-epi-dev-cnv-output-jsons/"
     })
-    print('inputs')
-    print(inputs)
 
     # Submit job
     response = api.submit(

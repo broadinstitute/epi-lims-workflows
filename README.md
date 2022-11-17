@@ -16,3 +16,6 @@
 - these steps should all be managed by terraform so the entire environment can be redeployed 
 
 RENAME REPO TO epi-lims-pipelimes
+
+
+This needs to get fixed so that can use cromwell-tools python lib: https://github.com/broadinstitute/cromwell-tools/issues/109
