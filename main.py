@@ -8,8 +8,12 @@ from cromwell_tools import api
 from cromwell_tools.cromwell_auth import CromwellAuth
 
 
+def dict_to_bytes_io(d):
+    return io.BytesIO(json.dumps(d).encode())
+
+
 def get_runtime_options(project):
-    return io.BytesIO({
+    return dict_to_bytes_io({
         "backend": "PAPIv2",
         "google_project": project,
         "jes_gcs_root": "gs://{0}-cromwell/workflows".format(project),
@@ -25,7 +29,7 @@ def get_runtime_options(project):
                 "us-east1-d"
             ]
         }
-    }.encode())
+    })
 
 
 def get_wdl(name):
@@ -65,7 +69,9 @@ def launch_cromwell(request):
     )
 
     options = get_runtime_options(project)
-    inputs = io.BytesIO({
+    print('options')
+    print(options)
+    inputs = dict_to_bytes_io({
         "CNVAnalysis.bam": "gs://broad-epi-dev-aggregated-alns/aggregated_aln_028227.bam",
         "CNVAnalysis.binSize": 5000,
         "CNVAnalysis.cnvRatiosBed": None,
@@ -75,7 +81,9 @@ def launch_cromwell(request):
         "CNVAnalysis.dockerImage": "us.gcr.io/broad-epi-dev/epi-analysis",
         "CNVAnalysis.outFilesDir": "gs://broad-epi-dev-aggregated-alns/",
         "CNVAnalysis.outJsonDir": "gs://broad-epi-dev-cnv-output-jsons/"
-    }.encode())
+    })
+    print('inputs')
+    print(inputs)
 
     # Submit job
     response = api.submit(
