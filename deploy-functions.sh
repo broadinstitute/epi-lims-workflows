@@ -7,6 +7,9 @@ PROJECT=$(gcloud config get-value project)
 REGION="us-east1"
 COLLECTION="broad-epi-dev-beta2"
 
+# The Cromwell endpoint where jobs are submitted
+CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org"
+
 # The default SA identity that runs this cloudbuild
 # TODO
 
@@ -128,7 +131,7 @@ gcloud functions deploy cromwell-launcher \
     --entry-point=launch_cromwell \
     --trigger-http \
     --allow-unauthenticated \
-    --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT
+    --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
 
 echo "Deployed Cromwell launcher function"
 

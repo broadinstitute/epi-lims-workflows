@@ -10,7 +10,7 @@
 - need terra / google groups [link to deploy-backend.sh where these are programmatically created]
 - need cloudbuild SA -- different from default cloudbuild SA
 - default cloudbuild SA needs Service Account Token Creator, Service Account Key Admin roles
-- compute SA (for functions) needs Cloud RuntimeConfig Admin
+- compute SA (for functions) needs Cloud KMS CryptoKey Decrypter
 - cloudbuild-kms-keyring, used for encrypting / decrypting the cromwell SA credentials
 
 - these steps should all be managed by terraform so the entire environment can be redeployed 
