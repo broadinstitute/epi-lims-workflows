@@ -32,14 +32,43 @@ def get_runtime_options(project):
     })
 
 
+def format_cnv_inputs(project, request):
+    return dict_to_bytes_io({
+        "CNVAnalysis.bam": request.get('bam'),
+        "CNVAnalysis.binSize": 5000,
+        "CNVAnalysis.cnvRatiosBed": request.get('cnv_ratios_bed'),
+        "CNVAnalysis.genomeName": request.get('genome_name'),
+        "CNVAnalysis.bypassCNVRescalingStep": request.get('bypass_rescaling'),
+        "CNVAnalysis.dockerImage": "us.gcr.io/{0}/epi-analysis".format(project),
+        "CNVAnalysis.outFilesDir": "gs://{0}-aggregated-alns/".format(project),
+        "CNVAnalysis.outJsonDir": "gs://{0}-cnv-output-jsons/".format(project)
+    })
+
+
 def get_wdl(name):
     return {
         'cnv': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl'
     }[name]
 
 
+formatters = {
+    'cnv': format_cnv_inputs
+}
+
+
 @functions_framework.http
 def launch_cromwell(request):
+    # TODO authentication
+    # TODO validate request
+    # TODO batch processing (auth, env, kms, cromwell auth)
+
+    request_json = request.get_json(silent=True)
+    request_args = request.args
+
+    print('args / json')
+    print(request_json)
+    print(request_args)
+
     # Grab KMS key information and encrypted Cromwell SA credentials
     # from environment variables passed in via cloudbuild
     encrypted_key = os.environ.get(
@@ -69,17 +98,7 @@ def launch_cromwell(request):
     )
 
     options = get_runtime_options(project)
-    inputs = dict_to_bytes_io({
-        "CNVAnalysis.bam": "gs://broad-epi-dev-aggregated-alns/aggregated_aln_028227.bam",
-        "CNVAnalysis.binSize": 5000,
-        "CNVAnalysis.cnvRatiosBed": None,
-        "CNVAnalysis.genomeName": "hg19",
-        "CNVAnalysis.binSize": 5000,
-        "CNVAnalysis.bypassCNVRescalingStep": False,
-        "CNVAnalysis.dockerImage": "us.gcr.io/broad-epi-dev/epi-analysis",
-        "CNVAnalysis.outFilesDir": "gs://broad-epi-dev-aggregated-alns/",
-        "CNVAnalysis.outJsonDir": "gs://broad-epi-dev-cnv-output-jsons/"
-    })
+    inputs = formatters[request_json['workflow']](project, request_json)
 
     # Submit job
     response = api.submit(

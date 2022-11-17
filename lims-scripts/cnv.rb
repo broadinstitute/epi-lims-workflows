@@ -28,6 +28,7 @@ subjects.each do |app|
         params[:tool_message] = "BAM Filename URI is missing for #{app.name}"
         return
     end
+    # TODO or ref_seq.name is nil?
     if ref_seq == nil
         params[:tool_message] = "Reference Sequence is missing for #{app.name}"
         return
@@ -91,18 +92,21 @@ subjects.each do |app|
 
     # Send request to launch job
     url = "https://cromwell-launcher-hxpirayhja-ue.a.run.app"
-    params {
+    params = {
+        :workflow => 'cnv'
         :app_name => app.name,
         :app_id => app.id,
+        :bam => app['BAM Filename URI'],
         :cnv_ratios_bed => cnv_ratios_bed,
-        :genome_name => ref_seq.gsub('_picard', ''),
+        :genome_name => ref_seq.name.gsub('_picard', '')
         :bypass_rescaling => bypass_rescaling,
         :input_control => input_control
     }
-    intsearch = call_external_service(url, nil) do |req, http|
+    response = call_external_service(url, nil) do |req, http|
         req['Content-Type'] = "application/json; encoding='utf-8'; odata=verbose"
         req['Accept'] = "application/json"
         req.body = params.to_json
     end
+    params[:tool_message] = response
 end
 
