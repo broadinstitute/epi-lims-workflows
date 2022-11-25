@@ -1,57 +1,124 @@
 # After Script of the cnv prototype tool
 
 extend UI
+
 require 'set'
+require_script 'show_error'
 require_script 'submit_jobs'
 
 def wce_sort_fn(a, b)
     a[:updated_at] == b[:updated_at] ? a[:id] - b[:id] : (a[:updated_at] <= b[:updated_at] ? -1 : 1)
 end
 
-def get_app_wce(alignment)
-    app = alignment['Aligment Post Processing']
-    if app
-        return {
-            :biosam => app['BioSam'],
+def get_library(app)
+    alignment = app['Input_Alignments_SL'][0]
+    return alignment
+        .get_value('Lane Subset')
+        .get_value('Component of Pooled SeqReq')
+        .get_value('CoPA')
+        .get_value('Pool Component')
+        .get_value('Library')
+end
+
+def get_biosam(library)
+    if library.name.include? 'Mint'
+        return library
+            .get_value('In Vitro Transcript')
+            .get_value('Mint-ChIP')
+            .get_value('CoMoChrPrp')
+            .get_value('Chromatin Prep')
+            .get_value('BioSAli')
+            .get_value('Biological Sample')
+    end
+    return library
+        .get_value('ChIP')
+        .get_value('Chromatin Prep')
+        .get_value('BioSAli')
+        .get_value('Biological Sample')
+    # TODO case for neither?
+end
+
+def get_alignments(library, biosam)
+    if library.name.include? 'Mint'
+        return biosam.get_value('Alignment SBR (BioSam) (Mint-ChIP)')
+    end
+    return biosam.get_value('Alignment SBR (BioSam) (ChIP)')
+end
+
+# TODO for some reason find_subjects complains the results
+# are too large without a limit parameter, even though
+# there are only ~3k results at time of comment
+def get_wces(ref_seq, library, biosam)
+    # TODO Could be precomputed to save time
+    wce_apps = find_subjects(query:search_query(from:'Alignment Post Processing') { |app|
+        app.and(
+            app.compare('Epitopes', :eq, 'WCE'),
+            app.compare('Reference Sequence', :eq, ref_seq)
+        )
+    }, limit:30000)
+
+    # TODO could be precomputed to save time
+    wce_alignments = Set[]
+    wce_alignment_to_app = {}
+    wce_apps.each do |app|
+        app['Input_Alignments_SL'].each do |al|
+            wce_alignments.add(al)
+            if wce_alignment_to_app.include?(al.name)
+                wce_alignment_to_app[al.name].add(app)
+            else
+                wce_alignment_to_app[al.name] = Set[app]
+            end
+        end
+    end
+    
+    # This is a way to efficiently get WCE Apps by finding
+    # the intersection of wce alignments and alignments
+    # associated with the current biosam. Otherwise requires
+    # traveling from alignment to biosam for each alignment,
+    # which is very inefficient in lims
+    alignments = get_alignments(library, biosam)
+        .to_set
+        .intersection(wce_alignments)
+
+    # Get corresponding APPs
+    apps = []
+    alignments
+      .map{ |a| wce_alignment_to_app[a.name] }
+      .each do |app_set|
+        app_set.each do |app|
+          apps.push({
+            :biosam => biosam,
             :id => app.id,
             :name => app.name,
             :updated_at => app.updated_at,
             :cnv_ratios_bed => app['CNV Ratios BED URI']
-        }
-    return {}
+          })
+        end
+      end
 
-params = []
+    return apps
+end
+
+query_params = []
 
 # Each subject is an APP
 subjects.each do |app|
     ref_seq = app['Reference Sequence']
-    biosams = app['Alignments'].map{ |a| a['BioSam'] }.to_set.to_a
 
-    if app['BAM Filename URI'] == nil
-        params[:tool_message] = "BAM Filename URI is missing for #{app.name}"
-        return
-    end
-    # TODO or ref_seq.name is nil?
     if ref_seq == nil
-        params[:tool_message] = "Reference Sequence is missing for #{app.name}"
+        show_error("Reference Sequence is missing for #{app.name}")
         return
     end
-    if biosams.length() != 1
-        params[:tool_message] = "Alignments for #{app.name} must come from exactly 1 BioSam"
+    if app['BAM Filename URI'] == nil
+        show_error("BAM Filename URI is missing for #{app.name}")
         return
     end
 
-    biosam = biosams[0]
+    library = get_library(app)
+    biosam = get_biosam(library)
 
     # Get most recent WCE 
-    alignments = find_subjects(query:search_query(from:'Alignment') { |a|
-        qb.and(
-            qb.compare('BioSam', :eq, b),
-            qb.compare('Epitopes', :eq, 'WCE'),
-            qb.compare('Reference Sequence', :eq, ref_seq)
-        )
-    })
-    wces = alignments.map{ |a| get_app_wce(a) }
+    wces = get_wces(ref_seq, library, biosam)
     sorted_wces = wces.sort! { |wce1, wce2| wce_sort_fn(wce1, wce2) }
     most_recent_wce = sorted_wces.length() > 0 ? sorted_wces.pop() : nil
 
@@ -61,7 +128,7 @@ subjects.each do |app|
     input_control = nil
     cnv_ratios_bed = nil
 
-    wce_override = s['Input Control Override']
+    wce_override = app['Input Control Override']
     bypass_rescaling = wce_override == 'bypass CNV rescaling step'
 
     if bypass_rescaling
@@ -74,26 +141,26 @@ subjects.each do |app|
 
         if !wce
             if wce_override
-                params[:tool_message] = "Input Control Override for #{app.name} doesn't exist: #{wce_override}"
+                show_error("Input Control Override for #{app.name} doesn't exist: #{wce_override}")
                 return
             end
-            params[:tool_message] = "#{biosam} doesn't have any WCE(s), and no Input Control Override was set for #{app.name}"
+            show_error("#{biosam} doesn't have any WCE(s), and no Input Control Override was set for #{app.name}")
             return
         end
         
-        is_input_control = app.name == wce.name
+        is_input_control = app.name == wce[:name]
         if !is_input_control
             if !wce['cnv_ratios_bed']
-                params[:tool_message] = "#{app.name} depends on WCE #{wce.name}, which is missing a CNV Ratios BED URI"
+                show_error("#{app.name} depends on WCE #{wce[:name]}, which is missing a CNV Ratios BED URI")
                 return
             end
             cnv_ratios_bed = wce['cnv_ratios_bed']
         end
 
-        input_control = wce.name
+        input_control = wce[:name]
     end
     
-    params.push({
+    query_params.push({
         :workflow => 'cnv',
         :subj_name => app.name,
         :subj_id => app.id,
@@ -105,4 +172,4 @@ subjects.each do |app|
     })
 end
 
-submit_jobs(params)
+submit_jobs(query_params)
