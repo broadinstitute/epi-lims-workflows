@@ -92,27 +92,23 @@ def launch_cromwell(request):
 
     options = get_runtime_options(project)
 
+    # TODO error handling
     # Submit jobs
     responses = []
     for req in request_json['jobs']:
         inputs = formatters[req['workflow']](project, req)
-        if req.get('subj_id') == 385029:
-            response = api.submit(
-                auth=auth,
-                wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
-                inputs_files=[inputs],
-                options_file=options,
-                collection_name='broad-epi-dev-beta2'
-            )
-            responses.append({
-                'subj_name': req['subj_name'],
-                'response': json.loads(response.text)
-            })
-        else:
-            responses.append({
-                'subj_name': req['subj_name'],
-                'response': {'status': 'cromwell rejected the job'}
-            })
+        response = api.submit(
+            auth=auth,
+            wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
+            inputs_files=[inputs],
+            options_file=options,
+            collection_name='broad-epi-dev-beta2'
+        )
+        print(response)
+        responses.append({
+            'subj_name': req['subj_name'],
+            'response': json.loads(response.text)
+        })
 
     # TODO return 200
     return {'jobs': responses}
