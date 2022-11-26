@@ -45,14 +45,27 @@ def format_cnv_inputs(project, request):
     })
 
 
-def get_wdl(name):
-    return {
-        'cnv': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl'
-    }[name]
+def format_import_inputs(project, request):
+    return dict_to_bytes_io({
+        "BclToFastq.bcl": request.get('bcl'),
+        "BclToFastq.candidateMolecularBarcodes": request.get('candidate_molecular_barcodes'),
+        "BclToFastq.candidateMolecularIndices": request.get('candidate_molecular_indices'),
+        "BclToFastq.readStructure": request.get('read_structure'),
+        "BclToFastq.sequencingCenter": request.get('sequencing_center'),
+        "BclToFastq.dockerImage": "us.gcr.io/{0}/alignment-tools".format(project),
+        "BclToFastq.outputDir": "gs://{0}-lane-subsets/".format(project),
+    })
 
+
+wdls = {
+    'cnv': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/cnv.wdl',
+    'import': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/imports.wdl',
+    'chipseq': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/chipseq.wdl'
+}
 
 formatters = {
-    'cnv': format_cnv_inputs
+    'cnv': format_cnv_inputs,
+    'import': format_import_inputs
 }
 
 
@@ -92,19 +105,18 @@ def launch_cromwell(request):
 
     options = get_runtime_options(project)
 
-    # TODO error handling
+    # TODO error handling / return 200
     # Submit jobs
     responses = []
     for req in request_json['jobs']:
         inputs = formatters[req['workflow']](project, req)
         response = api.submit(
             auth=auth,
-            wdl_file='https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/cnv-test/cnv.wdl',
+            wdl_file=wdls[req['workflow']],
             inputs_files=[inputs],
             options_file=options,
             collection_name='broad-epi-dev-beta2'
         )
-        print(response)
         responses.append({
             'subj_name': req['subj_name'],
             'response': json.loads(response.text)
