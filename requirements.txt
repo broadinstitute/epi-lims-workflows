@@ -1,4 +1,5 @@
 functions-framework==3.*
+google-auth
 google-cloud-kms
 google-cloud-pubsub
 cromwell-tools

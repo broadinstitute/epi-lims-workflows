@@ -2,6 +2,7 @@ import io
 import os
 import json
 import functions_framework
+from google.auth import jwt
 from google.cloud import kms
 from google.cloud import pubsub_v1
 
@@ -80,7 +81,11 @@ def submit_bcl_transfer(project, bcl, workflow_id, sa):
             'metadata': {'workflow_id': workflow_id}
         }
     ]
-    publisher = pubsub_v1.PublisherClient()
+    credentials = jwt.Credentials.from_service_account_info(
+        sa,
+        audience='https://pubsub.googleapis.com/google.pubsub.v1.Publisher'
+    )
+    publisher = pubsub_v1.PublisherClient(credentials=credentials)
     topic_name = 'projects/{0}/topics/cloudcopy'.format(project)
     publisher.create_topic(name=topic_name)
     request = json.dumps({
@@ -148,7 +153,6 @@ def launch_cromwell(request):
             'subj_name': req['subj_name'],
             'response': response.json()
         })
-        print(response.json())
         # TODO error handling
         # Start the bcl transfer for import workflows
         if req['workflow'] == 'import':
