@@ -144,17 +144,16 @@ def launch_cromwell(request):
             on_hold=req.get('on_hold'),
             collection_name='broad-epi-dev-beta2'
         )
-        response_json = json.loads(response.text)
         responses.append({
             'subj_name': req['subj_name'],
-            'response': response_json
+            'response': response.json()
         })
-        print(response)
+        print(response.json())
         # TODO error handling
         # Start the bcl transfer for import workflows
         if req['workflow'] == 'import':
             submit_bcl_transfer(
-                project, req['bcl'], response_json['workflow_id'], key_json)
+                project, req['bcl'], response.json()['id'], key_json)
 
     # TODO return 200
     return {'jobs': responses}
