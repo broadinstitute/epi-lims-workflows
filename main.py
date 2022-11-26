@@ -115,6 +115,7 @@ def launch_cromwell(request):
             wdl_file=wdls[req['workflow']],
             inputs_files=[inputs],
             options_file=options,
+            on_hold=req.get('on_hold'),
             collection_name='broad-epi-dev-beta2'
         )
         responses.append({

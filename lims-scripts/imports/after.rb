@@ -145,6 +145,7 @@ submit_jobs([{
     :workflow => 'import',
     :subj_name => subjects.map{ |s| s.name }.join(','),
     :subj_id => subjects.map{ |s| s.id }.join(','),
+    :on_hold => true,
     :bcl => bcl,
     :read_structure => read_structure,
     :candidate_molecular_barcodes => candidate_molecular_barcodes,
