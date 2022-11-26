@@ -71,23 +71,24 @@ formatters = {
 
 
 # bcl is of format /seq/illumina_ext/SL-NSH/211030_SL-NSH_0728_AHKYVNDRXY/
-def submit_bcl_transfer(project, bcl):
+def submit_bcl_transfer(project, bcl, workflow_id, sa):
     fname = 'morgane-test'
     transfers = [
         {
             'destination': 'gs://{0}-bcls/{1}.tar'.format(project, fname),
-            'source': bcl
+            'source': bcl,
+            'metadata': {'workflow_id': workflow_id}
         }
     ]
     publisher = pubsub_v1.PublisherClient()
     topic_name = 'projects/{0}/topics/cloudcopy'.format(project)
     publisher.create_topic(name=topic_name)
-    request = {
+    request = json.dumps({
         'messages': [{
             'attributes': {},
             'data': transfers
         }]
-    }
+    })
     # future = publisher.publish(topic_name, b'My first message!', spam='eggs')
     future = publisher.publish(topic_name, request)
     print(future.result())
@@ -133,10 +134,6 @@ def launch_cromwell(request):
     # Submit jobs
     responses = []
     for req in request_json['jobs']:
-        # TODO error handling for transfer
-        # Start the bcl transfer for import workflows
-        if req['workflow'] == 'import':
-            submit_bcl_transfer(req['bcl'])
         # Submit the workflow to cromwell
         inputs = formatters[req['workflow']](project, req)
         response = api.submit(
@@ -151,6 +148,12 @@ def launch_cromwell(request):
             'subj_name': req['subj_name'],
             'response': json.loads(response.text)
         })
+        print(response)
+        # TODO error handling
+        # Start the bcl transfer for import workflows
+        if req['workflow'] == 'import':
+            submit_bcl_transfer(
+                project, req['bcl'], response['workflow_id'], key_json)
 
     # TODO return 200
     return {'jobs': responses}
