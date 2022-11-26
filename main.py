@@ -110,12 +110,14 @@ def launch_cromwell(request):
     responses = []
     for req in request_json['jobs']:
         inputs = formatters[req['workflow']](project, req)
+        print(req.get('on_hold'))
+        print(req)
         response = api.submit(
             auth=auth,
             wdl_file=wdls[req['workflow']],
             inputs_files=[inputs],
             options_file=options,
-            on_hold=req.get('on_hold'),
+            on_hold=True,
             collection_name='broad-epi-dev-beta2'
         )
         responses.append({
