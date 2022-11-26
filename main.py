@@ -3,6 +3,7 @@ import os
 import json
 import functions_framework
 from google.cloud import kms
+from google.cloud import pubsub_v1
 
 from cromwell_tools import api
 from cromwell_tools.cromwell_auth import CromwellAuth
@@ -69,6 +70,29 @@ formatters = {
 }
 
 
+# bcl is of format /seq/illumina_ext/SL-NSH/211030_SL-NSH_0728_AHKYVNDRXY/
+def submit_bcl_transfer(project, bcl):
+    fname = 'morgane-test'
+    transfers = [
+        {
+            'destination': 'gs://{0}-bcls/{1}.tar'.format(project, fname),
+            'source': bcl
+        }
+    ]
+    publisher = pubsub_v1.PublisherClient()
+    topic_name = 'projects/{0}/topics/cloudcopy'.format(project)
+    publisher.create_topic(name=topic_name)
+    request = {
+        'messages': [{
+            'attributes': {},
+            'data': transfers
+        }]
+    }
+    # future = publisher.publish(topic_name, b'My first message!', spam='eggs')
+    future = publisher.publish(topic_name, request)
+    print(future.result())
+
+
 @functions_framework.http
 def launch_cromwell(request):
     # TODO authentication
@@ -109,15 +133,18 @@ def launch_cromwell(request):
     # Submit jobs
     responses = []
     for req in request_json['jobs']:
+        # TODO error handling for transfer
+        # Start the bcl transfer for import workflows
+        if req['workflow'] == 'import':
+            submit_bcl_transfer(req['bcl'])
+        # Submit the workflow to cromwell
         inputs = formatters[req['workflow']](project, req)
-        print(req.get('on_hold'))
-        print(req)
         response = api.submit(
             auth=auth,
             wdl_file=wdls[req['workflow']],
             inputs_files=[inputs],
             options_file=options,
-            on_hold=True,
+            on_hold=req.get('on_hold'),
             collection_name='broad-epi-dev-beta2'
         )
         responses.append({

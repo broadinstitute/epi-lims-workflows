@@ -13,9 +13,6 @@
 - compute SA (for functions) needs Cloud KMS CryptoKey Decrypter
 - cloudbuild-kms-keyring, used for encrypting / decrypting the cromwell SA credentials
 
-- these steps should all be managed by terraform so the entire environment can be redeployed 
+- these steps should all be managed by terraform and/or cloudbuild so the entire environment can be redeployed (ex cloudbuild or terraform should take care of setting permissions)
 
 RENAME REPO TO epi-lims-pipelimes
-
-
-This needs to get fixed so that can use cromwell-tools python lib: https://github.com/broadinstitute/cromwell-tools/issues/109

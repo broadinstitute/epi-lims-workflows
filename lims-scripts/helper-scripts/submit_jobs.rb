@@ -13,7 +13,7 @@ def submit_jobs(params)
     failures = []
     response['jobs'].each do |job|
         status = job['response']['status']
-        if status == 'Submitted'
+        if status == 'Submitted' or status == 'On Hold'
             submitted.push(job['subj_name'])
         else
             failures.push({
