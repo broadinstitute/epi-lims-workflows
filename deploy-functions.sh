@@ -10,9 +10,6 @@ COLLECTION="broad-epi-dev-beta2"
 # The Cromwell endpoint where jobs are submitted
 CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org"
 
-# The SA for Google Cloud Storage
-GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
-
 # The SA that allows us to call external services such as Sam
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
 
@@ -21,6 +18,14 @@ CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
 
 # The default SA identity used by 2nd gen cloud functions
 FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
+
+# The SA for Google Cloud Storage
+GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
+
+# The SA for Google Cloud Storage Pub/Sub functionality 
+# Required if pub/sub was enabled before April 8 2021
+# https://cloud.google.com/eventarc/docs/run/create-trigger-storage-gcloud#before-you-begin
+GCS_PUBSUB_SA="serviceAccount:service-667661088669@gcp-sa-pubsub.iam.gserviceaccount.com"
 
 # Use local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
@@ -77,6 +82,11 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
 gcloud projects add-iam-policy-binding broad-epi-dev \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
+
+# Enable 
+gcloud projects add-iam-policy-binding broad-epi-dev \
+    --member= \
+    --role='roles/iam.serviceAccountTokenCreator'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is

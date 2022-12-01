@@ -25,4 +25,6 @@
 
 include language breakdown to demonstrate how wdl-dominated this is
 
+1st vs 2nd gen GCF?
+
 RENAME REPO TO epi-lims-pipelimes
