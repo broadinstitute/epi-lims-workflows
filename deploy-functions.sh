@@ -77,6 +77,10 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
 gcloud projects add-iam-policy-binding broad-epi-dev \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
+## TODO this is a test
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member="serviceAccount:${GCS_SA}" \
+  --role='roles/owner'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is
