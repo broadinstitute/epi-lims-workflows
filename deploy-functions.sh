@@ -180,7 +180,7 @@ gcloud functions deploy on-chipseq-done \
     --source=. \
     --entry-point=on_chipseq_done \
     --trigger-bucket="gs://broad-epi-dev-morgane-test" \
-    --service-account=$FUNCTION_SA
+    --service-account=$FUNCTION_SA \
     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
 # TODO pass lims user/pw as env var?
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
