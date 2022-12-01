@@ -23,8 +23,6 @@ FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
 GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
 
 # The SA for Google Cloud Storage Pub/Sub functionality 
-# Required if pub/sub was enabled before April 8 2021
-# https://cloud.google.com/eventarc/docs/run/create-trigger-storage-gcloud#before-you-begin
 GCS_PUBSUB_SA="serviceAccount:service-667661088669@gcp-sa-pubsub.iam.gserviceaccount.com"
 
 # Use local google identity, the default cloudbuild service account
@@ -83,9 +81,10 @@ gcloud projects add-iam-policy-binding broad-epi-dev \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
 
-# Enable 
+# Required if pub/sub was enabled before April 8 2021
+# https://cloud.google.com/eventarc/docs/run/create-trigger-storage-gcloud#before-you-begin
 gcloud projects add-iam-policy-binding broad-epi-dev \
-    --member= \
+    --member="serviceAccount:${GCS_PUBSUB_SA}" \
     --role='roles/iam.serviceAccountTokenCreator'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
