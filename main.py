@@ -152,3 +152,8 @@ def launch_cromwell(request):
 
     # TODO return 200
     return {'jobs': responses}
+
+
+@functions_framework.http
+def on_chipseq_done(request):
+    print('TRIGGERED CHIPSEQ')
