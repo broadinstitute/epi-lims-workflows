@@ -157,3 +157,4 @@ def launch_cromwell(request):
 @functions_framework.http
 def on_chipseq_done(request):
     print('TRIGGERED CHIPSEQ')
+    print(request)

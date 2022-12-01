@@ -151,7 +151,6 @@ gcloud functions deploy on-chipseq-done \
     --source=. \
     --entry-point=on_chipseq_done \
     --trigger-bucket="gs://broad-epi-dev-chipseq-output-jsons" \
-    --allow-unauthenticated \
     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
 
   
