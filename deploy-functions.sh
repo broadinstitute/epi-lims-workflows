@@ -77,10 +77,16 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
 gcloud projects add-iam-policy-binding broad-epi-dev \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
-## TODO this is a test
-gcloud projects add-iam-policy-binding broad-epi-dev \
-  --member="serviceAccount:${GCS_SA}" \
-  --role='roles/owner'
+
+# Enable required GCP APIs
+# gcloud services enable \
+#     pubsub.googleapis.com \
+#     cloudbuild.googleapis.com \
+#     logging.googleapis.com \
+#     eventarc.googleapis.com \
+#     artifactregistry.googleapis.com \
+#     run.googleapis.com \
+#     --quiet
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is
@@ -144,6 +150,24 @@ gcloud functions deploy cromwell-launcher \
 
 echo "Deployed Cromwell launcher function"
 
+gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
+
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/artifactregistry.reader"
+
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/storage.objectCreator"
+
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/run.invoker"
+
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/eventarc.eventReceiver"
+
 # Deploy Cromwell parser functions. These use GCP's EventArc API,
 # which needs to be enabled for these functions to build. These
 # functions are triggered when the trigger-bucket is updated using
@@ -156,6 +180,7 @@ gcloud functions deploy on-chipseq-done \
     --source=. \
     --entry-point=on_chipseq_done \
     --trigger-bucket="gs://broad-epi-dev-morgane-test" \
+    --service-account=$FUNCTION_SA
     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
 # TODO pass lims user/pw as env var?
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
