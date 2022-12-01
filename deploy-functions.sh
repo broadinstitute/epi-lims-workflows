@@ -83,9 +83,9 @@ gcloud projects add-iam-policy-binding broad-epi-dev \
 
 # Required if pub/sub was enabled before April 8 2021
 # https://cloud.google.com/eventarc/docs/run/create-trigger-storage-gcloud#before-you-begin
-gcloud projects add-iam-policy-binding broad-epi-dev \
-    --member="serviceAccount:${GCS_PUBSUB_SA}" \
-    --role='roles/iam.serviceAccountTokenCreator'
+# gcloud projects add-iam-policy-binding broad-epi-dev \
+#     --member="serviceAccount:${GCS_PUBSUB_SA}" \
+#     --role='roles/iam.serviceAccountTokenCreator'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is
