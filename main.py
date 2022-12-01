@@ -136,7 +136,7 @@ def launch_cromwell(request):
             wdl_file=wdls[req['workflow']],
             inputs_files=[inputs],
             options_file=options,
-            on_hold=req.get('on_hold'),
+            on_hold=req.get('on_hold', False),
             collection_name='{0}-beta2'.format(project)
         )
         print(response.text)
