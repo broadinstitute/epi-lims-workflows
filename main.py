@@ -6,6 +6,8 @@ from google.auth import jwt
 from google.cloud import kms
 from google.cloud import pubsub_v1
 
+from transfer import submit_bcl_transfer
+
 from cromwell_tools import api
 from cromwell_tools.cromwell_auth import CromwellAuth
 
@@ -59,6 +61,21 @@ def format_import_inputs(project, request):
     })
 
 
+def format_chipseq_inputs(project, request):
+    genome = request.get('genome_name')
+    return dict_to_bytes_io({
+        "ChipSeq.fasta": "gs://{0}-genomes/{1}/{1}.fasta".format(project, genome),
+        "ChipSeq.donor": request.get('donor'),
+        "ChipSeq.genomeName": request.get('genome_name'),
+        "ChipSeq.laneSubsets": request.get('lane_subsets'),
+        "ChipSeq.peakStyles": request.get('peak_styles'),
+        "ChipSeq.picard_mark_duplicates_basic.instrumentModel": request.get('instrument_model'),
+        "ChipSeq.dockerImage": "us.gcr.io/{0}/alignment-tools".format(project),
+        "ChipSeq.classifierDockerImage": "us.gcr.io/{0}/classifier".format(project),
+        "ChipSeq.outputJsonDir": "gs://{0}-chipseq-output-jsons".format(project),
+    })
+
+
 wdls = {
     'cnv': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/cnv.wdl',
     'import': 'https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/imports.wdl',
@@ -67,36 +84,9 @@ wdls = {
 
 formatters = {
     'cnv': format_cnv_inputs,
-    'import': format_import_inputs
+    'import': format_import_inputs,
+    'chipseq': format_chipseq_inputs
 }
-
-
-# bcl is of format /seq/illumina_ext/SL-NSH/211030_SL-NSH_0728_AHKYVNDRXY/
-def submit_bcl_transfer(project, bcl, workflow_id, sa):
-    fname = 'morgane-test'
-    transfers = [
-        {
-            'destination': 'gs://{0}-bcls/{1}.tar'.format(project, fname),
-            'source': bcl,
-            'metadata': {'workflow_id': workflow_id}
-        }
-    ]
-    credentials = jwt.Credentials.from_service_account_info(
-        sa,
-        audience='https://pubsub.googleapis.com/google.pubsub.v1.Publisher'
-    )
-    publisher = pubsub_v1.PublisherClient(credentials=credentials)
-    topic_name = 'projects/{0}/topics/cloudcopy'.format(project)
-    publisher.create_topic(name=topic_name)
-    request = json.dumps({
-        'messages': [{
-            'attributes': {},
-            'data': transfers
-        }]
-    })
-    # future = publisher.publish(topic_name, b'My first message!', spam='eggs')
-    future = publisher.publish(topic_name, request)
-    print(future.result())
 
 
 @functions_framework.http

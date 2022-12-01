@@ -16,6 +16,9 @@
   Pub/Sub Publisher
   SA User
   Storage Admin and/or Storage Object Admin
+- cloudcopy is separate repo and runs on epigenomics host 
+  requires pub/sub topic
+  server.ts subscribes to it
 
 - these steps should all be managed by terraform and/or cloudbuild so the entire environment can be redeployed (ex cloudbuild or terraform should take care of setting permissions)
 
