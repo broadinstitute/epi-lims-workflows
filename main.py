@@ -139,7 +139,7 @@ def launch_cromwell(request):
             on_hold=req.get('on_hold'),
             collection_name='{0}-beta2'.format(project)
         )
-        print(response)
+        print(response.text)
         responses.append({
             'subj_name': req['subj_name'],
             'response': response.json()
