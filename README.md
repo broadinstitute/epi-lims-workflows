@@ -2,9 +2,10 @@
 - chmod 755 deploy-functions.sh to allow cloudbuild to execute
 - there are a few different SAs required
   - need lims-cromwell-user SA 
-  - default cloudbuild (identity of cloudbuild)
-  - default compute (identity of google cloud functions)
+  - default cloudbuild (identity of cloudbuild) [needs a number of permissions, including EventArc]
+  - default compute (identity of google cloud functions) [needs EventArc event receiver]
   - cloudbuild (external services)
+  - GCS SA (needs Pub/Sub)
   - cromwell 
   - genotyping?
 - need terra / google groups [link to deploy-backend.sh where these are programmatically created]

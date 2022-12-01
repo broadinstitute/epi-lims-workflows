@@ -10,8 +10,8 @@ COLLECTION="broad-epi-dev-beta2"
 # The Cromwell endpoint where jobs are submitted
 CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org"
 
-# The default SA identity that runs this cloudbuild
-# TODO
+# The SA for Google Cloud Storage
+GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
 
 # The SA that allows us to call external services such as Sam
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
@@ -72,6 +72,11 @@ curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-pr
 gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
     --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
+
+# Enable GCS SA to use Pub/Sub for GCF triggers
+gcloud projects add-iam-policy-binding broad-epi-dev \
+    --member="serviceAccount:${GCS_SA}" \
+    --role='roles/pubsub.publisher'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is
@@ -135,7 +140,10 @@ gcloud functions deploy cromwell-launcher \
 
 echo "Deployed Cromwell launcher function"
 
-# Deploy Cromwell parser functions
+# Deploy Cromwell parser functions. These use GCP's EventArc API,
+# which needs to be enabled for these functions to build. These
+# functions are triggered when the trigger-bucket is updated using
+# Pub/Sub. 
 gcloud functions deploy on-chipseq-done \
     --gen2 \
     --runtime=python310 \
