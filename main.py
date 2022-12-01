@@ -154,7 +154,7 @@ def launch_cromwell(request):
     return {'jobs': responses}
 
 
-@functions_framework.http
-def on_chipseq_done(request):
+@functions_framework.cloud_event
+def on_chipseq_done(event):
     print('TRIGGERED CHIPSEQ')
-    print(request)
+    print(event.data)

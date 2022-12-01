@@ -25,6 +25,6 @@
 
 include language breakdown to demonstrate how wdl-dominated this is
 
-1st vs 2nd gen GCF?
+1st vs 2nd gen GCF? [background functions are 1st gen, CloudEvent fns are 2nd]
 
 RENAME REPO TO epi-lims-pipelimes
