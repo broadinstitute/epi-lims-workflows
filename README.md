@@ -3,7 +3,7 @@
 - there are a few different SAs required
   - need lims-cromwell-user SA 
   - default cloudbuild (identity of cloudbuild) [needs a number of permissions, including EventArc]
-  - default compute (identity of google cloud functions) [needs EventArc event receiver]
+  - default compute (identity of google cloud functions) [needs EventArc event receiver and Pub/Sub]
   - cloudbuild (external services)
   - GCS SA (needs Pub/Sub)
   - cromwell 
@@ -28,3 +28,5 @@ include language breakdown to demonstrate how wdl-dominated this is
 1st vs 2nd gen GCF? [background functions are 1st gen, CloudEvent fns are 2nd]
 
 RENAME REPO TO epi-lims-pipelimes
+
+This is useful: https://console.cloud.google.com/home/activity?project=broad-epi-dev 

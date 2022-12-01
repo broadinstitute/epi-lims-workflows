@@ -22,9 +22,6 @@ FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
 # The SA for Google Cloud Storage
 GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
 
-# The SA for Google Cloud Storage Pub/Sub functionality 
-GCS_PUBSUB_SA="serviceAccount:service-667661088669@gcp-sa-pubsub.iam.gserviceaccount.com"
-
 # Use local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
 TOKEN=$(gcloud auth print-access-token)
@@ -80,12 +77,6 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
 gcloud projects add-iam-policy-binding broad-epi-dev \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
-
-# Required if pub/sub was enabled before April 8 2021
-# https://cloud.google.com/eventarc/docs/run/create-trigger-storage-gcloud#before-you-begin
-# gcloud projects add-iam-policy-binding broad-epi-dev \
-#     --member="serviceAccount:${GCS_PUBSUB_SA}" \
-#     --role='roles/iam.serviceAccountTokenCreator'
 
 # if no key exists for the Cromwell SA, create one, encrypt it
 # using KMS, and store it in the Runtime Config. This key is
@@ -152,14 +143,15 @@ echo "Deployed Cromwell launcher function"
 # Deploy Cromwell parser functions. These use GCP's EventArc API,
 # which needs to be enabled for these functions to build. These
 # functions are triggered when the trigger-bucket is updated using
-# Pub/Sub. 
+# Pub/Sub. This automatically creates an EventArc trigger and
+# Pub/Sub subscription
 gcloud functions deploy on-chipseq-done \
     --gen2 \
     --runtime=python310 \
     --region=$REGION \
     --source=. \
     --entry-point=on_chipseq_done \
-    --trigger-bucket="gs://broad-epi-dev-chipseq-output-jsons" \
+    --trigger-bucket="gs://broad-epi-dev-morgane-test" \
     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
-
-  
+# TODO pass lims user/pw as env var?
+# TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
