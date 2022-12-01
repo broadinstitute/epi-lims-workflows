@@ -4,6 +4,12 @@ require_script 'submit_jobs'
 # Sort lane subsets by UID
 subjects.sort! { |a, b| a.id <=> b.id }
 
+# TODO verify that all donors/segmenters/instruments
+# are the same across input lane subsets
+donors = Set[]
+segmenters = Set[]
+instruments = Set[]
+
 # Format query params for each LS chipseq job
 lane_subsets = subjects.map do |ls|
     lib = ls.get_value('Component of Pooled SeqReq')
@@ -30,6 +36,10 @@ lane_subsets = subjects.map do |ls|
     lane = ls.get_value('LIMS_Lane')
     instrument = lane.get_value('Instrument Model')
     run_date = lane.get_value('Run End Date')
+
+    donors.add(donor.name)
+    instruments.add(instrument)
+    segmenters.add(segmenter)
     
     # Format the lane subsets for workflow input
     lane_subset = {
@@ -45,12 +55,10 @@ lane_subsets = subjects.map do |ls|
             ls['Reads 2 Filename URI']
         ].filter{ |f| f }
     }
-
-    Rails.logger.info("******* #{lane_subset}")
 end
 
 # Launch jobs
-submit_jobs({
+submit_jobs([{
     :workflow => 'chipseq',
     :subj_name => subjects.map{ |s| s.name }.join(','),
     :subj_id => subjects.map{ |s| s.id }.join(','),
@@ -59,4 +67,4 @@ submit_jobs({
     :peak_styles => segmenters.to_a[0],
     :instrument_model => instruments.to_a[0],
     :lane_subsets => lane_subsets
-})
+}])

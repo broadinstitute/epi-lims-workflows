@@ -139,11 +139,12 @@ def launch_cromwell(request):
             on_hold=req.get('on_hold'),
             collection_name='{0}-beta2'.format(project)
         )
+        print(response)
         responses.append({
             'subj_name': req['subj_name'],
             'response': response.json()
         })
-        # TODO error handling
+        # TODO error handling for transfer
         # Start the bcl transfer for import workflows
         # if req['workflow'] == 'import':
         #     submit_bcl_transfer(
