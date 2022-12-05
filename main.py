@@ -132,12 +132,15 @@ def launch_cromwell(request):
             'workflowOnHold': req.get('on_hold', False),
             'workflowOptions': options
         }
+        print(submission_manifest)
+        print(endpoint)
         response = requests.post(
             endpoint,
             data=submission_manifest,
             auth=None,
             headers={'authorization': ''}
         )
+        print(response)
         print(response.text)
         responses.append({
             'subj_name': req['subj_name'],
