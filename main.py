@@ -163,3 +163,10 @@ def launch_cromwell(request):
 def on_chipseq_done(event):
     print('TRIGGERED CHIPSEQ')
     print(event.data)
+
+    # Parse outputs
+
+    # Write to lims
+    # Copy files to buckets
+
+    # Launch CNV for WCEs
