@@ -2,9 +2,23 @@ import io
 import json
 import requests
 
+import google.auth.transport.requests
+from google.oauth2 import service_account
+
 endpoint = 'https://cromwell.caas-prod.broadinstitute.org/api/workflows/v1'
+
 sa_key = json.load(open('../keys/cromwell_user_sa_key-dev.json', 'r'))
 client_email = sa_key['client_email']
+
+# Authenticate using google oauth2
+scopes = ['email', 'openid', 'profile']
+credentials = service_account.Credentials.from_service_account_info(
+    sa_key, scopes=scopes
+)
+if not credentials.valid:
+    credentials.refresh(google.auth.transport.requests.Request())
+header = {}
+credentials.apply(header)
 
 workflow_inputs = io.BytesIO(json.dumps({
     "CNVAnalysis.bam": "gs://broad-epi-dev-aggregated-alns/aggregated_aln_028227.bam",
@@ -50,6 +64,6 @@ response = requests.post(
     endpoint,
     data=submission_manifest,
     auth=None,
-    headers={'authorization': ''}
+    headers=header
 )
 print(response.text)

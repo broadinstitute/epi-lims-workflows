@@ -6,6 +6,8 @@ import functions_framework
 from google.auth import jwt
 from google.cloud import kms
 from google.cloud import pubsub_v1
+import google.auth.transport.requests
+from google.oauth2 import service_account
 
 # from transfer import submit_bcl_transfer
 
@@ -117,6 +119,16 @@ def launch_cromwell(request):
 
     sa_key = json.loads(decrypt_response.plaintext)
 
+    # Get authorization header for Cromwell SA
+    credentials = service_account.Credentials.from_service_account_info(
+        sa_key, scopes=['email', 'openid', 'profile']
+    )
+    if not credentials.valid:
+        credentials.refresh(google.auth.transport.requests.Request())
+    header = {}
+    credentials.apply(header)
+
+    # Get Cromwell runtime options
     options = get_runtime_options(project, sa_key)
 
     # TODO error handling / return 200
@@ -139,7 +151,7 @@ def launch_cromwell(request):
             endpoint,
             data=submission_manifest,
             auth=None,
-            headers={'authorization': ''}
+            headers=header
         )
         print(response)
         print(response.text)
