@@ -30,3 +30,9 @@ include language breakdown to demonstrate how wdl-dominated this is
 RENAME REPO TO epi-lims-pipelimes
 
 This is useful: https://console.cloud.google.com/home/activity?project=broad-epi-dev 
+
+### CloudEvent functions 
+Cloud Function
+Cloud Run service
+Eventarc trigger
+Pub/Sub Topic and Subscription

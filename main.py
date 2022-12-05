@@ -1,6 +1,7 @@
 import io
 import os
 import json
+import requests
 import functions_framework
 from google.auth import jwt
 from google.cloud import kms
@@ -8,21 +9,20 @@ from google.cloud import pubsub_v1
 
 # from transfer import submit_bcl_transfer
 
-from cromwell_tools import api
-from cromwell_tools.cromwell_auth import CromwellAuth
-
 
 def dict_to_bytes_io(d):
     return io.BytesIO(json.dumps(d).encode())
 
 
-def get_runtime_options(project):
+def get_runtime_options(project, sa_key):
     return dict_to_bytes_io({
         "backend": "PAPIv2",
         "google_project": project,
         "jes_gcs_root": "gs://{0}-cromwell/workflows".format(project),
         "monitoring_image": "us.gcr.io/{0}/cromwell-task-monitor-bq".format(project),
         "final_workflow_log_dir": "gs://{0}-cromwell-logs".format(project),
+        "google_compute_service_account": sa_key['client_email'],
+        "user_service_account_json": json.dumps(sa_key),
         "default_runtime_attributes": {
             "disks": "local-disk 10 HDD",
             "maxRetries": 1,
@@ -115,15 +115,9 @@ def launch_cromwell(request):
     decrypt_response = client.decrypt(
         request={'name': key_name, 'ciphertext': encrypted_key})
 
-    key_json = json.loads(decrypt_response.plaintext)
+    sa_key = json.loads(decrypt_response.plaintext)
 
-    # Authenticate to Cromwell
-    auth = CromwellAuth.harmonize_credentials(
-        service_account_key=key_json,
-        url=endpoint
-    )
-
-    options = get_runtime_options(project)
+    options = get_runtime_options(project, sa_key)
 
     # TODO error handling / return 200
     # Submit jobs
@@ -131,13 +125,18 @@ def launch_cromwell(request):
     for req in request_json['jobs']:
         # Submit the workflow to cromwell
         inputs = formatters[req['workflow']](project, req)
-        response = api.submit(
-            auth=auth,
-            wdl_file=wdls[req['workflow']],
-            inputs_files=[inputs],
-            options_file=options,
-            on_hold=req.get('on_hold', False),
-            collection_name='{0}-beta2'.format(project)
+        submission_manifest = {
+            'workflowUrl': wdls[req['workflow']],
+            'workflowInputs': inputs,
+            'collectionName': '{0}-beta2'.format(project),
+            'workflowOnHold': req.get('on_hold', False),
+            'workflowOptions': options
+        }
+        response = requests.post(
+            endpoint,
+            data=submission_manifest,
+            auth=None,
+            headers={'authorization': ''}
         )
         print(response.text)
         responses.append({
