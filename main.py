@@ -21,7 +21,7 @@ def get_runtime_options(project, sa_key):
         "backend": "PAPIv2",
         "google_project": project,
         "jes_gcs_root": "gs://{0}-cromwell/workflows".format(project),
-        "monitoring_image": "us.gcr.io/{0}/cromwell-task-monitor-bq".format(project),
+        # "monitoring_image": "us.gcr.io/{0}/cromwell-task-monitor-bq".format(project),
         "final_workflow_log_dir": "gs://{0}-cromwell-logs".format(project),
         "google_compute_service_account": sa_key['client_email'],
         "user_service_account_json": json.dumps(sa_key),
@@ -93,8 +93,6 @@ formatters = {
 
 @functions_framework.http
 def launch_cromwell(request):
-    # TODO authentication
-    # TODO validate request
     request_json = request.get_json(silent=True)
 
     # Grab KMS key information and encrypted Cromwell SA credentials
@@ -131,7 +129,6 @@ def launch_cromwell(request):
     # Get Cromwell runtime options
     options = get_runtime_options(project, sa_key)
 
-    # TODO error handling / return 200
     # Submit jobs
     responses = []
     for req in request_json['jobs']:
@@ -144,28 +141,21 @@ def launch_cromwell(request):
             'workflowOnHold': req.get('on_hold', False),
             'workflowOptions': options
         }
-        print(submission_manifest)
-        print(endpoint)
-        endpoint = 'https://cromwell.caas-prod.broadinstitute.org/api/workflows/v1'
         response = requests.post(
             endpoint,
             data=submission_manifest,
             auth=None,
             headers=header
         )
-        print(response)
-        print(response.text)
         responses.append({
             'subj_name': req['subj_name'],
             'response': response.json()
         })
-        # TODO error handling for transfer
         # Start the bcl transfer for import workflows
         # if req['workflow'] == 'import':
         #     submit_bcl_transfer(
         #         project, req['bcl'], response.json()['id'], key_json)
 
-    # TODO return 200
     return {'jobs': responses}
 
 

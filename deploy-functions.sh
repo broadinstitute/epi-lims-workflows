@@ -8,7 +8,7 @@ REGION="us-east1"
 COLLECTION="broad-epi-dev-beta2"
 
 # The Cromwell endpoint where jobs are submitted
-CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org"
+CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org/api/workflows/v1"
 
 # The SA that allows us to call external services such as Sam
 CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
