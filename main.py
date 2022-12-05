@@ -134,6 +134,7 @@ def launch_cromwell(request):
         }
         print(submission_manifest)
         print(endpoint)
+        endpoint = 'https://cromwell.caas-prod.broadinstitute.org/api/workflows/v1'
         response = requests.post(
             endpoint,
             data=submission_manifest,
