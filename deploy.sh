@@ -194,8 +194,8 @@ gcloud functions deploy on-chipseq-done \
     --region=$REGION \
     --source=. \
     --entry-point=on_chipseq_done \
-    --trigger-bucket="gs://broad-epi-dev-morgane-test" \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
+    --trigger-event-filters="bucket=gs://broad-epi-dev-morgane-test" \
     --service-account=$FUNCTION_SA \
     --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
