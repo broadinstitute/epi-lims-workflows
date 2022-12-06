@@ -183,8 +183,8 @@ def on_workflow_done(cloud_event):
     )
 
     # Parse Cromwell job outputs and write to LIMS
-    print(f'Workflow completion: {workflow}')
     workflow = outputs['workflow']
+    print(f'Workflow completion: {workflow}')
     workflow_parsers[workflow](
         project,
         username,
