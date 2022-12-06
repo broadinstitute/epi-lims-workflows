@@ -166,7 +166,7 @@ def on_chipseq_done(cloud_event):
     project = os.environ.get('PROJECT')
 
     # Parse cromwell job outputs
-    outputs = json.loads(event.data)
+    outputs = json.loads(cloud_event.data)
     genome = outputs['genomeName']
     commands = outputs['commandOutlines']
     software = outputs['softwareVersions']

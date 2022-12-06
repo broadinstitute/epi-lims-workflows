@@ -25,7 +25,10 @@ FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
 # The SA for Google Cloud Storage
 GCS_SA=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)
 
-# Use local google identity, the default cloudbuild service account
+# The SA for EventArc, which relays bucket events to cloud fns
+EVENTARC_SA="service-667661088669@gcp-sa-eventarc.iam.gserviceaccount.com"
+
+# Uses local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
 TOKEN=$(gcloud auth print-access-token)
 
@@ -157,27 +160,29 @@ echo "Deployed Cromwell launcher function"
 # with GCS, EventArc, and PubSub, all used for the GCF trigger
 # functions that receive outputs from Cromwell and write to LIMS
 gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
-gsutil iam ch serviceAccount:667661088669-compute@developer.gserviceaccount.com:legacyBucketReader gs://broad-epi-dev-morgane-test
-gsutil iam ch serviceAccount:667661088669-compute@developer.gserviceaccount.com:objectViewer gs://broad-epi-dev-morgane-test
+gsutil iam ch "serviceAccount:$FUNCTION_SA:legacyBucketReader" gs://broad-epi-dev-morgane-test
+gsutil iam ch "serviceAccount:$FUNCTION_SA:objectViewer" gs://broad-epi-dev-morgane-test
+gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://broad-epi-dev-morgane-test
+gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://broad-epi-dev-morgane-test
 
+# Give GCS SA permission to publish notifications on bucket event
 gcloud projects add-iam-policy-binding $PROJECT \
   --member serviceAccount:$GCS_SA \
   --role roles/pubsub.publisher
 
+# Give EventArc SA permission to retrieve data from bucket
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-  --role "roles/artifactregistry.reader"
+  --member "serviceAccount:$EVENTARC_SA" \
+  --role "roles/storage.objectViewer"
 
+# Give EventArc SA permission to invoke Cloud Functions
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-  --role "roles/storage.objectCreator"
-
-gcloud projects add-iam-policy-binding $PROJECT \
-  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --member "serviceAccount:$EVENTARC_SA" \
   --role "roles/run.invoker"
 
+# Give Cloud Functions SA permission to receive events from EventArc
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --member "serviceAccount:$FUNCTION_SA" \
   --role "roles/eventarc.eventReceiver"
 
 # Get LIMS username/password
