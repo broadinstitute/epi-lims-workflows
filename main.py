@@ -3,9 +3,8 @@ import os
 import json
 import requests
 import functions_framework
-from google.auth import jwt
 from google.cloud import kms
-from google.cloud import pubsub_v1
+from google.cloud import storage
 import google.auth.transport.requests
 from google.oauth2 import service_account
 
@@ -15,6 +14,15 @@ import imports
 
 def dict_to_bytes_io(d):
     return io.BytesIO(json.dumps(d).encode())
+
+
+def download_gcs_file(bucket, name):
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(bucket)
+    blob = bucket.blob(name)
+    blob = blob.download_as_string()
+    blob = blob.decode('utf-8')
+    return json.loads(blob)
 
 
 def get_runtime_options(project, sa_key):
@@ -165,7 +173,13 @@ def on_chipseq_done(cloud_event):
     password = os.environ.get('LIMS_PASSWORD')
     project = os.environ.get('PROJECT')
 
-    # Parse cromwell job outputs
+    # Download Cromwell job outputs from GCS
+    outputs = download_gcs_file(
+        cloud_event.data['bucket'],
+        cloud_event.data['name']
+    )
+
+    # Parse Cromwell job outputs
     outputs = json.loads(cloud_event.data)
     genome = outputs['genomeName']
     commands = outputs['commandOutlines']

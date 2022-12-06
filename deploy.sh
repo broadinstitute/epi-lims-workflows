@@ -159,11 +159,13 @@ echo "Deployed Cromwell launcher function"
 # Give permissions to cloud function SA so that it can interact
 # with GCS, EventArc, and PubSub, all used for the GCF trigger
 # functions that receive outputs from Cromwell and write to LIMS
-gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
-gsutil iam ch "serviceAccount:$FUNCTION_SA:legacyBucketReader" gs://broad-epi-dev-morgane-test
-gsutil iam ch "serviceAccount:$FUNCTION_SA:objectViewer" gs://broad-epi-dev-morgane-test
 gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://broad-epi-dev-morgane-test
 gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://broad-epi-dev-morgane-test
+
+# TODO Cloud Pub/Sub needs the role roles/iam.serviceAccountTokenCreator
+# granted to service account service-667661088669@gcp-sa-pubsub.iam.gserviceaccount.com
+# on this project to create identity tokens. You can change this later.
+# I did this manually while debugging
 
 # Give GCS SA permission to publish notifications on bucket event
 gcloud projects add-iam-policy-binding $PROJECT \
