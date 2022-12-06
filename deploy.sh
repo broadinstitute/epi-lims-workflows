@@ -159,7 +159,7 @@ echo "Deployed Cromwell launcher function"
 gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
 
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member serviceAccount:$SERVICE_ACCOUNT \
+  --member serviceAccount:$GCS_SA \
   --role roles/pubsub.publisher
 
 gcloud projects add-iam-policy-binding $PROJECT \
