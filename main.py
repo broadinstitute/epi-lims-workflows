@@ -156,7 +156,10 @@ def launch_cromwell(request):
 
 
 @functions_framework.cloud_event
-def on_chipseq_done(event):
+def on_chipseq_done(cloud_event):
+    print('ON CHIPSEQ DONE')
+    print(cloud_event.data)
+
     # Grab lims user/password from secret
     username = os.environ.get('LIMS_USERNAME')
     password = os.environ.get('LIMS_PASSWORD')

@@ -4,7 +4,10 @@ set -euo pipefail
 
 # TODO: replace broad-epi-dev with this variable - access _ENV from cloudbuild vars
 PROJECT=$(gcloud config get-value project)
+# TODO: replace 667661088669 with this variable
+PROJECT_NUMBER=$(gcloud projects list --filter="project_id:$PROJECT" --format='value(project_number)')
 REGION="us-east1"
+# TODO should be broad-epi-beta2 for prod
 COLLECTION="broad-epi-dev-beta2"
 
 # The Cromwell endpoint where jobs are submitted
@@ -20,7 +23,7 @@ CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
 FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
 
 # The SA for Google Cloud Storage
-GCS_SA="service-667661088669@gs-project-accounts.iam.gserviceaccount.com"
+GCS_SA=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)
 
 # Use local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
@@ -155,19 +158,23 @@ echo "Deployed Cromwell launcher function"
 # functions that receive outputs from Cromwell and write to LIMS
 gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
 
-gcloud projects add-iam-policy-binding broad-epi-dev \
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member serviceAccount:$SERVICE_ACCOUNT \
+  --role roles/pubsub.publisher
+
+gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
   --role "roles/artifactregistry.reader"
 
-gcloud projects add-iam-policy-binding broad-epi-dev \
+gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
   --role "roles/storage.objectCreator"
 
-gcloud projects add-iam-policy-binding broad-epi-dev \
+gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
   --role "roles/run.invoker"
 
-gcloud projects add-iam-policy-binding broad-epi-dev \
+gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
   --role "roles/eventarc.eventReceiver"
 
@@ -188,6 +195,7 @@ gcloud functions deploy on-chipseq-done \
     --source=. \
     --entry-point=on_chipseq_done \
     --trigger-bucket="gs://broad-epi-dev-morgane-test" \
+    --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
     --service-account=$FUNCTION_SA \
     --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
