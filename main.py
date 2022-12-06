@@ -99,6 +99,12 @@ formatters = {
     'chipseq': format_chipseq_inputs
 }
 
+workflow_parsers = {
+    'cnv': imports.import_cnv_outputs,
+    'import': imports.import_bcl_outputs,
+    'chipseq': imports.import_chipseq_outputs
+}
+
 
 @functions_framework.http
 def launch_cromwell(request):
@@ -164,10 +170,7 @@ def launch_cromwell(request):
 
 
 @functions_framework.cloud_event
-def on_chipseq_done(cloud_event):
-    print('ON CHIPSEQ DONE')
-    print(cloud_event.data)
-
+def on_workflow_done(cloud_event):
     # Grab lims user/password from secret
     username = os.environ.get('LIMS_USERNAME')
     password = os.environ.get('LIMS_PASSWORD')
@@ -179,62 +182,12 @@ def on_chipseq_done(cloud_event):
         cloud_event.data['name']
     )
 
-    # Parse Cromwell job outputs
-    outputs = json.loads(cloud_event.data)
-    genome = outputs['genomeName']
-    commands = outputs['commandOutlines']
-    software = outputs['softwareVersions']
-    ref_seq = '{0}_picard'.format(genome)
-
-    # Import Alignments into LIMS
-    lims_alignments = imports.import_alignments(
+    # Parse Cromwell job outputs and write to LIMS
+    print(f'Workflow completion: {workflow}')
+    workflow = outputs['workflow']
+    workflow_parsers[workflow](
         project,
         username,
         password,
-        outputs['alignments'],
-        ref_seq,
-        commands
+        outputs
     )
-
-    # Import APP into LIMS
-    input_alignments = lims_alignments['names']
-    read_groups = ','.join(
-        map(lambda a: a['laneSubsetName'], outputs['alignments'])
-    )
-    lims_app = imports.import_app(
-        project,
-        username,
-        password,
-        outputs['alignmentPostProcessing'],
-        input_alignments,
-        read_groups,
-        ref_seq,
-        software,
-        commands
-    )
-
-    # Import Segmentations into LIMS
-    app_name = lims_app['names']
-    imports.import_segmentations(
-        project,
-        username,
-        password,
-        outputs['segmentations'],
-        app_name,
-        software
-    )
-
-    # Import Track into LIMS
-    imports.import_track(
-        project,
-        username,
-        password,
-        outputs['track'],
-        app_name,
-        software,
-        commands
-    )
-
-    # TODO Copy files to buckets
-
-    # TODO Launch CNV for WCEs

@@ -192,17 +192,14 @@ LIMS_SECRET=$(gcloud secrets versions access 1 --secret lims-api-user)
 LIMS_USERNAME=$(echo $LIMS_SECRET | cut -d',' -f1)
 LIMS_PASSWORD=$(echo $LIMS_SECRET | cut -d',' -f2)
 
-# Deploy Cromwell parser functions. These use GCP's EventArc API,
-# which needs to be enabled for these functions to build. These
-# functions are triggered when the trigger-bucket is updated using
-# Pub/Sub. This automatically creates an EventArc trigger and
-# Pub/Sub subscription
-gcloud functions deploy on-chipseq-done \
+# Deploy Cromwell parser function. This uses GCP's EventArc API,
+# which needs to be enabled for this function to build.
+gcloud functions deploy on-workflow-done \
     --gen2 \
     --runtime=python310 \
     --region=$REGION \
     --source=. \
-    --entry-point=on_chipseq_done \
+    --entry-point=on_workflow_done \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
     --trigger-event-filters="bucket=broad-epi-dev-morgane-test" \
     --service-account=$FUNCTION_SA \

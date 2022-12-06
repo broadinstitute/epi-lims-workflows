@@ -107,3 +107,75 @@ def import_track(project, username, password, track, app_name, software, command
         'Alignment Post Processing': app_name,
         # 'Projects': projectsSet,
     })
+
+
+def import_bcl_outputs(project, username, password, outputs):
+    pass
+
+
+def import_chipseq_outputs(project, username, password, outputs):
+    # Parse Cromwell job outputs
+    genome = outputs['genomeName']
+    commands = outputs['commandOutlines']
+    software = outputs['softwareVersions']
+    ref_seq = '{0}_picard'.format(genome)
+
+    # Import Alignments into LIMS
+    print('Importing Alignments')
+    lims_alignments = import_alignments(
+        project,
+        username,
+        password,
+        outputs['alignments'],
+        ref_seq,
+        commands
+    )
+
+    # Import APP into LIMS
+    print('Importing APP')
+    input_alignments = lims_alignments['names']
+    read_groups = ','.join(
+        map(lambda a: a['laneSubsetName'], outputs['alignments'])
+    )
+    lims_app = import_app(
+        project,
+        username,
+        password,
+        outputs['alignmentPostProcessing'],
+        input_alignments,
+        read_groups,
+        ref_seq,
+        software,
+        commands
+    )
+
+    # Import Segmentations into LIMS
+    print('Importing Segmentations')
+    app_name = lims_app['names']
+    import_segmentations(
+        project,
+        username,
+        password,
+        outputs['segmentations'],
+        app_name,
+        software
+    )
+
+    # Import Track into LIMS
+    print('Importing Track')
+    import_track(
+        project,
+        username,
+        password,
+        outputs['track'],
+        app_name,
+        software,
+        commands
+    )
+
+    # TODO Copy files to buckets
+    # TODO Launch CNV for WCEs
+
+
+def import_cnv_outputs(project, username, password, outputs):
+    pass

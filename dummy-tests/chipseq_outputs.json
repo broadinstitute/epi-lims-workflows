@@ -1,4 +1,5 @@
 {
+  "workflow": "chipseq",
   "alignmentPostProcessing": {
     "alignedFragments": 39148718,
     "alignmentSummaryMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-aggregated_alignment_metrics/metrics.txt",
