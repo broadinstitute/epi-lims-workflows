@@ -157,6 +157,8 @@ echo "Deployed Cromwell launcher function"
 # with GCS, EventArc, and PubSub, all used for the GCF trigger
 # functions that receive outputs from Cromwell and write to LIMS
 gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
+gsutil iam ch serviceAccount:667661088669-compute@developer.gserviceaccount.com:legacyBucketReader gs://broad-epi-dev-morgane-test
+gsutil iam ch serviceAccount:667661088669-compute@developer.gserviceaccount.com:objectViewer gs://broad-epi-dev-morgane-test
 
 gcloud projects add-iam-policy-binding $PROJECT \
   --member serviceAccount:$GCS_SA \
