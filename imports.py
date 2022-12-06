@@ -3,7 +3,8 @@ import requests
 from requests.exceptions import HTTPError
 
 
-def import_subjects(subject_type, data):
+def import_subjects(project, username, password, subject_type, data):
+    project = 'dev-' if 'dev' in project else ''
     params = {
         'method': 'import_subjects',
         'subject_type': subject_type,
@@ -13,7 +14,7 @@ def import_subjects(subject_type, data):
     }
     try:
         response = requests.get(
-            url,
+            'https://lims.{0}epi.broadinstitute.org/api'.format(project),
             params=params,
             headers={
                 'Content-Type': 'application/json'
@@ -27,14 +28,7 @@ def import_subjects(subject_type, data):
         return response.json()
 
 
-genome = outputs['genomeName']
-commands = outputs['commandOutlines']
-software = outputs['softwareVersions']
-
-ref_seq = '{0}_picard'.format(genome)
-
-
-def import_alignments(alignments, ref_seq, commands):
+def import_alignments(username, password, project, alignments, ref_seq, commands):
     lims_alignments = []
     for alignment in alignments:
         lims_alignments.append({
@@ -51,13 +45,11 @@ def import_alignments(alignments, ref_seq, commands):
             'Percent Duplicate Fragments': alignment['percentDuplicateFragments'],
             'ESTIMATED_LIBRARY_SIZE Picard': alignment['estimatedLibrarySize']
         })
-    return import_subjects('Alignment', alignments)
+    return import_subjects(project, username, password, 'Alignment', alignments)
 
 
-# input_alignments = alignment_response['names']
-# read_groups = ','.join(map(lambda a: a['laneSubsetName'], outputs['alignments']))
-def import_app(app, alignments, lane_subsets, ref_seq, software, commands):
-    return import_subjects('Alignment Post Processing', {
+def import_app(project, username, password, app, alignments, lane_subsets, ref_seq, software, commands):
+    return import_subjects(project, username, password, 'Alignment Post Processing', {
         # TODO - from context
         # 'Pipeline': cloudPipeline,
         # 'Pipeline_Version': pipelineVersion,
@@ -90,10 +82,8 @@ def import_app(app, alignments, lane_subsets, ref_seq, software, commands):
         # Projects: projectsSet,
     })
 
-# app_name = app_response['names']
 
-
-def import_segmentations(segmentations, app_name, software):
+def import_segmentations(project, username, password, segmentations, app_name, software):
     segmentations = []
     for segmentation in 'segmentations':
         segmentations.append({
@@ -105,11 +95,11 @@ def import_segmentations(segmentations, app_name, software):
             'SPOT': segmentation['spot'],
             # 'Projects': projectsSet,
         })
-    return import_subjects('Segmentation', segmentations)
+    return import_subjects(project, username, password, 'Segmentation', segmentations)
 
 
-def import_track(track, app_name, software, commands):
-    return import_subjects('Track', {
+def import_track(project, username, password, track, app_name, software, commands):
+    return import_subjects(project, username, password, 'Track', {
         # 'Pipeline Version': pipelineVersion,
         'IGVTools Version': software['igv'],
         'WigToBigWig Version': software['wigToBigWig'],

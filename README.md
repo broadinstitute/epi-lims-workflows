@@ -20,6 +20,8 @@
 - cloudcopy is separate repo and runs on epigenomics host 
   requires pub/sub topic
   server.ts subscribes to it
+- lims api user manually created in lims called lims-api-user
+- lims username/password manually created in GCP secret called lims-api-user
 
 - these steps should all be managed by terraform and/or cloudbuild so the entire environment can be redeployed (ex cloudbuild or terraform should take care of setting permissions)
 

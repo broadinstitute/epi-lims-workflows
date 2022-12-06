@@ -150,37 +150,44 @@ gcloud functions deploy cromwell-launcher \
 
 echo "Deployed Cromwell launcher function"
 
-# gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
+# Give permissions to cloud function SA so that it can interact
+# with GCS, EventArc, and PubSub, all used for the GCF trigger
+# functions that receive outputs from Cromwell and write to LIMS
+gsutil iam ch allUsers:objectViewer gs://broad-epi-dev-morgane-test
 
-# gcloud projects add-iam-policy-binding broad-epi-dev \
-#   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-#   --role "roles/artifactregistry.reader"
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/artifactregistry.reader"
 
-# gcloud projects add-iam-policy-binding broad-epi-dev \
-#   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-#   --role "roles/storage.objectCreator"
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/storage.objectCreator"
 
-# gcloud projects add-iam-policy-binding broad-epi-dev \
-#   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-#   --role "roles/run.invoker"
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/run.invoker"
 
-# gcloud projects add-iam-policy-binding broad-epi-dev \
-#   --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
-#   --role "roles/eventarc.eventReceiver"
+gcloud projects add-iam-policy-binding broad-epi-dev \
+  --member "serviceAccount:667661088669-compute@developer.gserviceaccount.com" \
+  --role "roles/eventarc.eventReceiver"
 
-# # Deploy Cromwell parser functions. These use GCP's EventArc API,
-# # which needs to be enabled for these functions to build. These
-# # functions are triggered when the trigger-bucket is updated using
-# # Pub/Sub. This automatically creates an EventArc trigger and
-# # Pub/Sub subscription
-# gcloud functions deploy on-chipseq-done \
-#     --gen2 \
-#     --runtime=python310 \
-#     --region=$REGION \
-#     --source=. \
-#     --entry-point=on_chipseq_done \
-#     --trigger-bucket="gs://broad-epi-dev-morgane-test" \
-#     --service-account=$FUNCTION_SA \
-#     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
-# # TODO pass lims user/pw as env var?
-# # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
+# Get LIMS username/password
+LIMS_SECRET=$(gcloud secrets versions access 1 --secret lims-api-user)
+LIMS_USERNAME=$(echo $LIMS_SECRET | cut -d',' -f1)
+LIMS_PASSWORD=$(echo $LIMS_SECRET | cut -d',' -f2)
+
+# Deploy Cromwell parser functions. These use GCP's EventArc API,
+# which needs to be enabled for these functions to build. These
+# functions are triggered when the trigger-bucket is updated using
+# Pub/Sub. This automatically creates an EventArc trigger and
+# Pub/Sub subscription
+gcloud functions deploy on-chipseq-done \
+    --gen2 \
+    --runtime=python310 \
+    --region=$REGION \
+    --source=. \
+    --entry-point=on_chipseq_done \
+    --trigger-bucket="gs://broad-epi-dev-morgane-test" \
+    --service-account=$FUNCTION_SA \
+    --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
+# TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries

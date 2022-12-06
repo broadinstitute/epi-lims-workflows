@@ -9,6 +9,7 @@ from google.cloud import pubsub_v1
 import google.auth.transport.requests
 from google.oauth2 import service_account
 
+import imports
 # from transfer import submit_bcl_transfer
 
 
@@ -97,16 +98,11 @@ def launch_cromwell(request):
 
     # Grab KMS key information and encrypted Cromwell SA credentials
     # from environment variables passed in via cloudbuild
-    encrypted_key = os.environ.get(
-        'KEY', 'KEY environment variable is not set')
-    project = os.environ.get(
-        'PROJECT', 'PROJECT environment variable is not set')
-    endpoint = os.environ.get(
-        'ENDPOINT', 'ENDPOINT environment variable is not set')
-    kms_key = os.environ.get(
-        'KMS_KEY', 'KMS_KEY environment variable is not set')
-    kms_location = os.environ.get(
-        'KMS_LOCATION', 'KMS_LOCATION environment variable is not set')
+    encrypted_key = os.environ.get('KEY')
+    project = os.environ.get('PROJECT')
+    endpoint = os.environ.get('ENDPOINT')
+    kms_key = os.environ.get('KMS_KEY')
+    kms_location = os.environ.get('KMS_LOCATION')
 
     # Decrypt the Cromwell SA credentials
     client = kms.KeyManagementServiceClient()
@@ -161,12 +157,67 @@ def launch_cromwell(request):
 
 @functions_framework.cloud_event
 def on_chipseq_done(event):
-    print('TRIGGERED CHIPSEQ')
-    print(event.data)
+    # Grab lims user/password from secret
+    username = os.environ.get('LIMS_USERNAME')
+    password = os.environ.get('LIMS_PASSWORD')
+    project = os.environ.get('PROJECT')
 
-    # Parse outputs
+    # Parse cromwell job outputs
+    outputs = json.loads(event.data)
+    genome = outputs['genomeName']
+    commands = outputs['commandOutlines']
+    software = outputs['softwareVersions']
+    ref_seq = '{0}_picard'.format(genome)
 
-    # Write to lims
-    # Copy files to buckets
+    # Import Alignments into LIMS
+    lims_alignments = imports.import_alignments(
+        project,
+        username,
+        password,
+        outputs['alignments'],
+        ref_seq,
+        commands
+    )
 
-    # Launch CNV for WCEs
+    # Import APP into LIMS
+    input_alignments = lims_alignments['names']
+    read_groups = ','.join(
+        map(lambda a: a['laneSubsetName'], outputs['alignments'])
+    )
+    lims_app = imports.import_app(
+        project,
+        username,
+        password,
+        outputs['alignmentPostProcessing'],
+        input_alignments,
+        read_groups,
+        ref_seq,
+        software,
+        commands
+    )
+
+    # Import Segmentations into LIMS
+    app_name = lims_app['names']
+    imports.import_segmentations(
+        project,
+        username,
+        password,
+        outputs['segmentations'],
+        app_name,
+        software
+    )
+
+    # Import Track into LIMS
+    imports.import_track(
+        project,
+        username,
+        password,
+        outputs['track'],
+        app_name,
+        software,
+        commands
+    )
+
+    # TODO Copy files to buckets
+
+    # TODO Launch CNV for WCEs

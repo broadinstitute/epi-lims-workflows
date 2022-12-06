@@ -12,7 +12,7 @@ substitutions:
 steps:
 - name: gcr.io/cloud-builders/gcloud
   id: deploy-functions
-  entrypoint: ./deploy-functions.sh
+  entrypoint: ./deploy.sh
   env:
   - VERSION=git-${SHORT_SHA}
   - BUCKETS_REGION=${_BUCKETS_REGION}
