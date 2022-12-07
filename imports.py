@@ -28,7 +28,7 @@ def import_subjects(project, username, password, subject_type, data):
         return response.json()
 
 
-def import_alignments(username, password, project, alignments, ref_seq, commands):
+def import_alignments(project, username, password, alignments, ref_seq, commands):
     lims_alignments = []
     for alignment in alignments:
         lims_alignments.append({

@@ -189,11 +189,8 @@ gcloud projects add-iam-policy-binding $PROJECT \
 
 # Get LIMS username/password
 LIMS_SECRET=$(gcloud secrets versions access 1 --secret lims-api-user)
-echo $LIMS_SECRET
 LIMS_USERNAME=$(echo $LIMS_SECRET | cut -d',' -f1)
 LIMS_PASSWORD=$(echo $LIMS_SECRET | cut -d',' -f2)
-echo $LIMS_USERNAME
-echo $LIMS_PASSWORD
 
 # Deploy Cromwell parser function. This uses GCP's EventArc API,
 # which needs to be enabled for this function to build.
