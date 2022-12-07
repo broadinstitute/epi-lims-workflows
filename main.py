@@ -176,6 +176,9 @@ def on_workflow_done(cloud_event):
     password = os.environ.get('LIMS_PASSWORD')
     project = os.environ.get('PROJECT')
 
+    print(username)
+    print(password)
+
     # Download Cromwell job outputs from GCS
     outputs = download_gcs_file(
         cloud_event.data['bucket'],
