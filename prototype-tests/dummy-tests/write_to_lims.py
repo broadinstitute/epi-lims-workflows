@@ -3,7 +3,7 @@ import json
 import requests
 from requests.exceptions import HTTPError
 
-username = 'dev-admin'
+username = 'lims-api-user'
 password = sys.argv[1]
 url = 'https://lims.dev-epi.broadinstitute.org/api'
 
