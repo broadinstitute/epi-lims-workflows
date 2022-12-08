@@ -20,6 +20,7 @@ def import_subjects(project, username, password, subject_type, data):
                 'Content-Type': 'application/json'
             }
         )
+        print(f'Response: {response}')
     except HTTPError as http_err:
         print(f'HTTP error occurred: {http_err}')
     except Exception as err:
