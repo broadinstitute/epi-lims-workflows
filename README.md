@@ -20,3 +20,6 @@
   - https://cloud.google.com/functions/docs/networking/network-settings#route-egress-to-vpc 
 
 - these steps should all be managed by terraform and/or cloudbuild so the entire environment can be redeployed (ex cloudbuild or terraform should take care of setting permissions -- should figure out if want to use cloudbuild only or cloudbuild/TF, TF good for things like VPC 
+
+- run the build regularly to catch errors
+- devise testing framework (with real data)

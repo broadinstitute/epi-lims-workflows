@@ -119,6 +119,8 @@ parent_path = params['text_attribute_for_tasks2']
 bcl = File.join(parent_path, run_params[:folder_name])
 
 candidate_molecular_barcodes = get_candidate_molecular_barcodes(params['Sequencing Schema'])
+
+# TODO not sure if this logic is correct
 candidate_molecular_indices = seq_technology == 'Mint-ChIP' ? get_candidate_molecular_indices() : {}
 
 # TODO debug - this is causing script to silently fail

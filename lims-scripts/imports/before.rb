@@ -1,9 +1,14 @@
+# Input subjects are SS-Pool Aliquots
+
+# NOTE This is only for Share-Seq right now and will have to be
+# refactored to accommodate Chip-Seq as well 
 # NOTE This requires a file type UDF called Run Parameters File
 # NOTE text_attributes_for_tasks is a dummy text variable
 # allowing us to pass arbitrary text content, not necessarily
 # bound to a UDF, to the after script
 
 # TODO check if import has already been run
+# TODO display values in form instead of putting them in form fields (or prevent user from changing value)
 # TODO handle validation across PA and CoPA - see queryBclImport
     # HiSeqRun, HiSeq_Folder_Name need to be the same across all PA
     # Sequencing_Technology, Species_Common_Name, Sequencing_Schema
@@ -13,24 +18,22 @@
 
 extend UI
 
-# These attributes should be the same across all CoPA
-# so just grab the first one 
-sequencing_technology = subj['CoPA SBR'][0]
-    .get_value('Pool Component')
-    .get_value('Pool of Libraries')
-    .get_value('Sequencing Technology')
-
-# TODO grab these values - might be able to use LIMS
-# choice subjects instead of text_attribute udfs
+# TODO assumes Human for now
 species_common_name = 'Human'
-sequencing_schema = 'Single Index Mint'
+sequencing_technology = 'SHARE-Seq'
+ss_library = subj['SS-CoPA SBR'][0]
+    .get_value('SS-PC')
+    .get_value('SS-Library')
+sequencing_schema = (ss_library.get_value('MO scATAC Lib') ? ss_library.get_value('MO scATAC Lib') : ss_library.get_value('MO scRNA Lib'))
+    .get_value('Molecular Barcode')
+    .get_value('Sequencing Schema')
 
 pa_names = subjects.map{ |s| s.name }.join(', ')
 
 # Ex parent path = /seq/illumina_ext/SL-NXD/
 params[:custom_fields] = UIUtils.encode_fields([
     field_set(
-        title: "<b>Pool Aliquot(s): #{pa_names}</b>",
+        title: "<b>SS-Pool Aliquot(s): #{pa_names}</b>",
         items: [
             field_container([
                 udf(
@@ -75,11 +78,14 @@ params[:custom_fields] = UIUtils.encode_fields([
         title: "<b>Run Parameters</b>",
         items: [
             field_container([
+                # TODO possibly get rid of this - we might only be receiving
+                # bcls from GCS now for share-seq
                 udf(
                     'text_attribute_for_tasks2',
                     nil,
                     fieldLabel: 'Parent path on NFS',
-                    required: true
+                    required: false,
+                    defaultValue: 'Note: this may just be GCS'
                 ),
                 udf('Run Parameters File', nil, required: true)
             ])

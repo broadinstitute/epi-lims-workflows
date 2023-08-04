@@ -1,4 +1,4 @@
-# After Script of the cnv prototype tool
+# Input subjects are Alignment Post Processing(s)
 
 extend UI
 
