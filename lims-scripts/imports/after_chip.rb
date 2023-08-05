@@ -1,3 +1,7 @@
+# NOTE this is the old after script for the original chip-seq
+# bcl import prototype. It has a lot of redundant code with 
+# import_functions and after_ss and should be cleaned up. 
+
 # TODO ensure RunParameters.xml has the same run ID as
 # the one supplied in before script
 # TODO implement parsing - LIMS exposes ruby xml parser
@@ -56,7 +60,7 @@ def get_candidate_molecular_indices()
         qb.compare('ChrPrp Index In-Use', :eq, 'TRUE')
     })
     candidates = {}
-    molecular_indexes.each{ |mi| candidates[mi.name] = mi.get_value('Molecular Barcode Index') }
+    molecular_indexes.each{ |mi| candidates[mi.name] = mi.get_value('Molecular Index Sequence') }
     return candidates
 end
 

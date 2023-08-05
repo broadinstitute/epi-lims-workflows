@@ -46,6 +46,8 @@ def get_runtime_options(project, sa_key):
         }
     })
 
+# TODO these formatters are a little redundant - we could simply pass
+# cnvRatiosBed directly in camel case and do something a little more clever 
 
 def format_cnv_inputs(project, request):
     return dict_to_bytes_io({
@@ -74,7 +76,7 @@ def format_import_inputs(project, request):
 
 def format_share_seq_import_inputs(project, request):
     return dict_to_bytes_io({
-        "SSBclToFastq.bcl": request.get('bcl'),
+        "SSBclToFastq.bcl": "gs://{0}-ss-bcls/{1}.tar".format(project, request.get('bcl')),
         "SSBclToFastq.candidateMolecularBarcodes": request.get('candidate_molecular_barcodes'),
         "SSBclToFastq.candidateMolecularIndices": request.get('candidate_molecular_indices'),
         "SSBclToFastq.readStructure": request.get('read_structure'),
@@ -205,3 +207,6 @@ def on_workflow_done(cloud_event):
         password,
         outputs
     )
+
+    # TODO launch any other jobs that need to run
+    # subsequently
