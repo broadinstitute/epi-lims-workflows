@@ -2,31 +2,28 @@
 
 set -euo pipefail
 
-# TODO: replace broad-epi-dev with this variable - access _ENV from cloudbuild vars
 PROJECT=$(gcloud config get-value project)
-# TODO: replace 667661088669 with this variable
 PROJECT_NUMBER=$(gcloud projects list --filter="project_id:$PROJECT" --format='value(project_number)')
 REGION="us-east1"
-# TODO should be broad-epi-beta2 for prod
-COLLECTION="broad-epi-dev-beta2"
+COLLECTION="$PROJECT-beta2"
 
 # The Cromwell endpoint where jobs are submitted
 CROMWELL_ENDPOINT="https://cromwell.caas-prod.broadinstitute.org/api/workflows/v1"
 
 # The SA that allows us to call external services such as Sam
-CLOUDBUILD_SA="cloudbuild@broad-epi-dev.iam.gserviceaccount.com"
+CLOUDBUILD_SA="cloudbuild@$PROJECT.iam.gserviceaccount.com"
 
 # The SA that will be used to launch Cromwell jobs
-CROMWELL_SA="lims-cromwell-user@broad-epi-dev.iam.gserviceaccount.com"
+CROMWELL_SA="lims-cromwell-user@$PROJECT.iam.gserviceaccount.com"
 
 # The default SA identity used by 2nd gen cloud functions
-FUNCTION_SA="667661088669-compute@developer.gserviceaccount.com"
+FUNCTION_SA="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 
 # The SA for Google Cloud Storage
 GCS_SA=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)
 
 # The SA for EventArc, which relays bucket events to cloud fns
-EVENTARC_SA="service-667661088669@gcp-sa-eventarc.iam.gserviceaccount.com"
+EVENTARC_SA="service-$PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com"
 
 # Uses local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
@@ -76,11 +73,11 @@ curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-pr
 # TODO add comment for this
 # TODO use google account ID var and replace cloudbuild SA with var
 gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
-    --member serviceAccount:667661088669@cloudbuild.gserviceaccount.com \
+    --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
 
 # Enable GCS SA to use Pub/Sub for GCF triggers
-gcloud projects add-iam-policy-binding broad-epi-dev \
+gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:${GCS_SA}" \
     --role='roles/pubsub.publisher'
 
@@ -159,11 +156,11 @@ echo "Deployed Cromwell launcher function"
 # Give permissions to cloud function SA so that it can interact
 # with GCS, EventArc, and PubSub, all used for the GCF trigger
 # functions that receive outputs from Cromwell and write to LIMS
-gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://broad-epi-dev-morgane-test
-gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://broad-epi-dev-morgane-test
+gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://$PROJECT-morgane-test
+gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://$PROJECT-morgane-test
 
 # TODO Cloud Pub/Sub needs the role roles/iam.serviceAccountTokenCreator
-# granted to service account service-667661088669@gcp-sa-pubsub.iam.gserviceaccount.com
+# granted to service account service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com
 # on this project to create identity tokens. You can change this later.
 # I did this manually while debugging
 
@@ -201,7 +198,7 @@ gcloud functions deploy on-workflow-done \
     --source=. \
     --entry-point=on_workflow_done \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
-    --trigger-event-filters="bucket=broad-epi-dev-morgane-test" \
+    --trigger-event-filters="bucket=$PROJECT-morgane-test" \
     --service-account=$FUNCTION_SA \
     --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
