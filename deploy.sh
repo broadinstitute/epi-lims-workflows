@@ -156,8 +156,8 @@ echo "Deployed Cromwell launcher function"
 # Give permissions to cloud function SA so that it can interact
 # with GCS, EventArc, and PubSub, all used for the GCF trigger
 # functions that receive outputs from Cromwell and write to LIMS
-gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://$PROJECT-morgane-test
-gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://$PROJECT-morgane-test
+gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://$PROJECT-workflow-outputs
+gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://$PROJECT-workflow-outputs
 
 # TODO Cloud Pub/Sub needs the role roles/iam.serviceAccountTokenCreator
 # granted to service account service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com
@@ -198,7 +198,7 @@ gcloud functions deploy on-workflow-done \
     --source=. \
     --entry-point=on_workflow_done \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
-    --trigger-event-filters="bucket=$PROJECT-morgane-test" \
+    --trigger-event-filters="bucket=$PROJECT-workflow-outputs" \
     --service-account=$FUNCTION_SA \
     --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries
