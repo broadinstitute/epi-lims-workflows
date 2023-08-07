@@ -112,7 +112,6 @@ submit_jobs([{
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
         outputJson: 'gs://broad-epi-bcl-output-jsons/' + subj.id.to_s + '.json',
-        # TODO stringify?
         context: {
             poolAliquotUID: subj.id,
             projects: [],
@@ -125,5 +124,3 @@ submit_jobs([{
         }.to_json
     ],
 }])
-
-Rails.logger.info(">>>>>#{job}")
