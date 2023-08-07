@@ -34,12 +34,11 @@ def format_pipeline_inputs(copas)
         pc = copa.get_value('SS-PC')
         library_type = pc.get_value('SS_Library_Type')
         lib = pc.get_value('SS-Library')
-        mo_lib = lib.get_value('MO scATAC Lib') ?
-            lib.get_value('MO scATAC Lib') :
-            lib.get_value('MO scRNA Lib')
+        atac = lib.get_value('MO scATAC Lib')
+        mo_lib = atac || lib.get_value('MO scRNA Lib')
         seq = mo_lib.get_value('Molecular Barcode')
             .get_value('Molecular Barcode Sequence')
-        pkr = mo_lib.get_value('SS-PKR')
+        pkr = atac ? mo_lib.get_value('SS-PKR') : mo_lib.get_value('MO cDNA').get_value('SS-PKR')
         sse = pkr.get_value('Share Seq Experiment')
         # Round 1 Barcode Set belongs to the library's Share Seq Experiment Component
         r1 = lib.get_value('SSEC').get_value('Round 1 barcode set')
@@ -94,7 +93,7 @@ run_parameters = parse_run_parameters(params['Run Parameters File'], sequencing_
 candidate_molecular_indices = get_candidate_molecular_indices()
 candidate_molecular_barcodes = get_candidate_molecular_barcodes(params['Sequencing Schema'])
 
-job = submit_jobs([{
+submit_jobs([{
     :workflow => 'share-seq-import',
     :subj_name => subj.name,
     :subj_id => subj.id,
@@ -126,3 +125,5 @@ job = submit_jobs([{
         }.to_json
     ],
 }])
+
+Rails.logger.info(">>>>>#{job}")

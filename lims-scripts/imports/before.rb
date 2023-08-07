@@ -87,6 +87,7 @@ params[:custom_fields] = UIUtils.encode_fields([
                     required: false,
                     defaultValue: 'Note: this may just be GCS'
                 ),
+                # NOTE this UDF has to be created in LIMS as a File type
                 udf('Run Parameters File', nil, required: true)
             ])
         ]

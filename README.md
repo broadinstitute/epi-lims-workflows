@@ -6,7 +6,7 @@
   - default compute (identity of google cloud functions) [needs EventArc event receiver and Pub/Sub]
   - cloudbuild (external services)
   - GCS SA (needs Pub/Sub)
-  - cromwell 
+  - cromwell
   - genotyping?
 - need terra / google groups [these are programmatically created in deploy-backend.sh in original repo]
 - compute SA (for functions) needs Cloud KMS CryptoKey Decrypter

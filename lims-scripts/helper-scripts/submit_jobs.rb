@@ -1,8 +1,10 @@
 # Send request to launch job
 
+require_script 'system_variables'
+
 def submit_jobs(params)
     # Submit the request 
-    response = call_external_service("https://cromwell-launcher-hxpirayhja-ue.a.run.app", nil) do |req, http|
+    response = call_external_service(ENDPOINT, nil) do |req, http|
         req['Content-Type'] = "application/json; encoding='utf-8'; odata=verbose"
         req['Accept'] = "application/json"
         req.body = { 'jobs': params }.to_json
