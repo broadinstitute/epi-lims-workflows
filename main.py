@@ -165,6 +165,7 @@ def launch_cromwell(request):
     )
 
     sa_key = json.loads(decrypt_response.plaintext)
+    print(json.dumps(sa_key))
 
     # Get authorization header for Cromwell SA
     credentials = service_account.Credentials.from_service_account_info(
