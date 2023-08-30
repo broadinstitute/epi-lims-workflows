@@ -57,9 +57,38 @@ struct Fastq {
 	String R1
 	String sampleType
 	String genome
-	String notes
 	Array[String] read1
 	Array[String] read2
+}
+
+struct LibraryOutput {
+  String name
+#   Float percentPfClusters
+#   Int meanClustersPerTile
+#   Float pfBases
+#   Float pfFragments
+  String read1
+  String read2
+}
+
+struct LaneOutput {
+  Int lane
+  Array[LibraryOutput] libraryOutputs
+  String barcodeMetrics
+#   File basecallMetrics
+}
+
+struct PipelineOutputs {
+  Array[LaneOutput] laneOutputs
+#   Float meanReadLength
+#   Float mPfFragmentsPerLane
+#   Int maxMismatches
+#   Int minMismatchDelta
+  Int runId
+  String flowcellId
+  String instrumentId
+#   String picardVersion
+  String? context
 }
 
 workflow SSBclToFastq {
@@ -97,7 +126,7 @@ workflow SSBclToFastq {
 		#   "tagged_1": "AACCTTGGAAAATTTT",
 		#   "tagged_2": "GGTTCCAAGGGGCCCC"
 		# }
-		# Map[String, String] candidateMolecularBarcodes
+		Map[String, String] candidateMolecularBarcodes
 
 		# Mint barcodes to infer, in the format:
 		# { "barcode_name": "barcode_sequence" }
@@ -106,7 +135,7 @@ workflow SSBclToFastq {
 		#   "CBE123": "ACTGACTG",
 		#   "CBE456": "CAGTCAGT"
 		# }
-		# Map[String, String] candidateMolecularIndices
+		Map[String, String] candidateMolecularIndices
 
 		# URI of the Docker image with analysis tools
 		String dockerImage = "nchernia/share_task_preprocess:18"
@@ -132,13 +161,6 @@ workflow SSBclToFastq {
 	# 		metaCsv = metaCsv,
 	# }
 
-	# if (!defined(lanes)){
-	# 	call GetLanes {
-	# 		input: 
-	# 			bcl = bcl, 
-	# 			untarBcl = getSampleSheet
-	# 	}
-	# }
 
 	# Int lengthLanes = length(select_first([lanes, GetLanes.lanes]))
 	# # memory estimate for BasecallsToBam depends on estimated size of one lane of data
@@ -147,35 +169,58 @@ workflow SSBclToFastq {
 	# Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
 	
 	scatter (p in pipelines) {
-		Int lengthLanes = length(p.lanes)#select_first([lanes, GetLanes.lanes]))
+		if (length(p.lanes) == 0){
+			call GetLanes {
+				input: 
+					bcl = bcl, 
+					untarBcl = getSampleSheet
+			}
+		}
+		Array[Int] lanes = select_first([GetLanes.lanes, p.lanes])
+		Int lengthLanes = length(lanes)#select_first([lanes, GetLanes.lanes]))
 		# memory estimate for BasecallsToBam depends on estimated size of one lane of data
 		Float bclSize = size(bcl, 'G')
 		Float memory = ceil(1.4 * bclSize + 147) / lengthLanes
 		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
 
-		Map[String, String] libraryBarcodes = read_map(write_tsv(p.multiplexParams))
+		call make_map {
+			input:
+				multiplexParams = p.multiplexParams
+		}
 		
 		scatter(i in range(length(p.pkrId))){
-			Copa copa = object {
+			call make_tsv as round1 {
+				input:
+					barcodes = p.round1Barcodes[i]
+			}
+			call make_tsv as round2 {
+				input:
+					barcodes = p.round2Barcodes[i]
+			}
+			call make_tsv as round3 {
+				input:
+					barcodes = p.round3Barcodes[i]
+			}
+			Copa copa_map = object {
 				pkrId: p.pkrId[i],
 				libraryBarcode: p.multiplexParams[i][0],
 				barcodeSequence: p.multiplexParams[i][1],
-				round1: write_tsv(p.round1Barcodes[i]),
-				round2: write_tsv(p.round2Barcodes[i]),
-				round3: write_tsv(p.round3Barcodes[i]),
+				round1: round1.tsv,
+				round2: round2.tsv,
+				round3: round3.tsv,
 				type: p.sampleType[i]
 			}
 
 			String uid = p.multiplexParams[i][0]
 		}
-		Map[String, Copa] map = as_map(zip(uid, copa))
+		Map[String, Copa] map = as_map(zip(uid, copa_map))
 
-		scatter (lane in p.lanes) {
+		scatter (lane in lanes) {
 			call ExtractBarcodes {
 				input:
 					bcl = bcl,
 					untarBcl = untarBcl,
-					libraryBarcodes = libraryBarcodes,
+					libraryBarcodes = make_map.libraryBarcodes,
 					barcodeStructure = barcodeStructure,
 					lane = lane,
 					dockerImage = dockerImage,
@@ -187,7 +232,7 @@ workflow SSBclToFastq {
 					bcl = bcl,
 					untarBcl = untarBcl,
 					barcodes = ExtractBarcodes.barcodes,
-					libraryBarcodes = libraryBarcodes,
+					libraryBarcodes = make_map.libraryBarcodes,
 					readStructure = ExtractBarcodes.readStructure,
 					lane = lane,
 					sequencingCenter = sequencingCenter,
@@ -214,21 +259,46 @@ workflow SSBclToFastq {
 
 				call BamToFastq { 
 					input: 
-						bam=bam,
+						bam = bam,
 						pkrId = copa.pkrId,
 						library = copa.libraryBarcode,
-						sampleType = copa.type, 
+						sampleType = sub(copa.type, 'sc', ''), 
 						R1barcodeSet = copa.round1,
 						R2barcodes = copa.round2,
 						R3barcodes = copa.round3,
 						dockerImage = dockerImage
 				}
 
-				call WriteTsvRow {
-					input:
-						fastq = BamToFastq.out
+				LibraryOutput libraryOutput = object {
+					name: getLibraryName.library,
+					read1: BamToFastq.out.read1[0],
+					read2: BamToFastq.out.read2[0]
 				}
+
+				# call WriteTsvRow {
+				# 	input:
+				# 		fastq = BamToFastq.out
+				# }
 			}
+
+			LaneOutput laneOutput = object {
+				lane: lane,
+				libraryOutputs: libraryOutput,
+				barcodeMetrics: ExtractBarcodes.barcodeMetrics
+			}
+		}
+
+		PipelineOutputs outputs = object {
+			laneOutputs: laneOutput,
+			# meanReadLength: BasecallMetrics.meanReadLength[0],
+			# mPfFragmentsPerLane: AggregatePfFragments.mPfFragmentsPerLane,
+			# maxMismatches: p.maxMismatches,
+			# minMismatchDelta: p.minMismatchDelta,
+			runId: BasecallsToBams.runId[0],
+			flowcellId: BasecallsToBams.flowcellId[0],
+			instrumentId: BasecallsToBams.instrumentId[0],
+			# picardVersion: GetVersion.picard,
+			context: p.context,
 		}
 
 		call AggregateBarcodeQC {
@@ -239,6 +309,12 @@ workflow SSBclToFastq {
 		call QC {
 			input:
 				barcodeMetrics = ExtractBarcodes.barcodeMetrics
+		}
+
+		call OutputJson {
+			input:
+				outputs = outputs,
+				outputFile = p.outputJson,
 		}
 	}
 	# call GatherOutputs { # OPTIONAL
@@ -269,6 +345,40 @@ workflow SSBclToFastq {
 	# 	# Array[Fastq] fastqs = flatten(BamToFastq.out)
 	# 	# Array[Array[Array[File]]] fastqs = BamToFastq.fastqs
 	# }
+}
+
+task make_map {
+	input {
+		Array[Array[String]] multiplexParams
+	}
+
+	command <<<
+	>>>
+
+	output {
+		Map[String, String] libraryBarcodes = read_map(write_tsv(multiplexParams))
+	}
+
+	runtime {
+		docker: "ubuntu:latest"
+	}
+}
+
+task make_tsv {
+	input {
+		Array[Array[String]] barcodes
+	}
+
+	command <<<
+	>>>
+
+	output {
+		File tsv = write_tsv(barcodes)
+	}
+
+	runtime {
+		docker: "ubuntu:latest"
+	}
 }
 
 task BarcodeMap {
@@ -490,7 +600,10 @@ task BasecallsToBams {
 
 	output {
 		Array[File] bams = glob("*.bam")
-                File monitoringLog = "monitoring.log"
+		Int runId = read_int("~{runIdFile}")
+		String flowcellId = read_string("~{flowcellIdFile}")
+		String instrumentId = read_string("~{instrumentIdFile}")
+        File monitoringLog = "monitoring.log"
 	}
 }
 
@@ -535,8 +648,8 @@ task getLibraryName {
 	}
 
 	command <<<
-		file=~{bam}
-		echo ${file%_*} > library.txt
+		file="~{bam}"
+		echo "${file%_*}" > library.txt
 	>>>
 
 	output {
@@ -595,8 +708,8 @@ task BamToFastq {
 
 
 	command <<<
-		samtools addreplacerg -r '@RG\tID:~{pkrId}' ~{bam} -o tmp.bam
-		python3 /software/bam_fastq.py tmp.bam ~{R1file} ~{R2file} ~{R3file} -p ~{prefix} -s ~{sampleType}
+		samtools addreplacerg -r '@RG\tID:~{pkrId}' "~{bam}" -o tmp.bam
+		python3 /software/bam_fastq.py tmp.bam ~{R1file} ~{R2file} ~{R3file} -p "~{prefix}" -s ~{sampleType}
 
 		gzip *.fastq
 	>>>
@@ -666,99 +779,113 @@ task QC {
 	}
 }
 
-
-task WriteTsvRow {
+task OutputJson {
 	input {
-		Fastq fastq
-	}
-	Float fastqSize = size(fastq.read1[0], 'G')
-        Int diskSize = ceil(2.2 * length(fastq.read1)*fastqSize)
-        String diskType = if diskSize > 375 then "SSD" else "LOCAL"
-	Array[String] read1 = fastq.read1
-	Array[String] read2 = fastq.read2
-
-	command <<<
-		# echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
-		echo -e "~{fastq.library}\t~{fastq.pkrId}\t~{fastq.R1}\t~{fastq.sampleType}\t~{sep=',' read1}\t~{sep=',' read2}\t~{fastq.genome}\t~{fastq.notes}" > row.tsv
-	>>>
-
-	output {
-		File row = 'row.tsv'
-	}
-
-	runtime {
-		docker: "ubuntu:latest"
-		disks: "local-disk ~{diskSize} ~{diskType}"
-	}
-}
-
-task GatherOutputs {
-	input {
-		Array[File] rows
-		String name
-		File metaCsv
-		String dockerImage
+		PipelineOutputs outputs
+		String outputFile
 	}
 
 	command <<<
-		echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
-		cat ~{sep=' ' rows} >> fastq.tsv
-
-		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta ~{metaCsv}
+		gsutil cp "~{write_json(outputs)}" "~{outputFile}"
 	>>>
 
 	runtime {
-		docker: dockerImage
-	}
-	output {
-		File rna_tsv = "rna.tsv"
-		File rna_no_tsv = "rna_no.tsv"
-		File atac_tsv = "atac.tsv"
-		File run_tsv = "run.tsv"
+		docker: "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
 	}
 }
 
-task TerraUpsert {
-	input {
-		File rna_tsv
-		File rna_no_tsv
-		File atac_tsv
-		File run_tsv
-		String terra_project
-		String workspace_name
-		String dockerImage
-	}
+# task WriteTsvRow {
+# 	input {
+# 		Fastq fastq
+# 	}
+# 	Float fastqSize = size(fastq.read1[0], 'G')
+#         Int diskSize = ceil(2.2 * length(fastq.read1)*fastqSize)
+#         String diskType = if diskSize > 375 then "SSD" else "LOCAL"
+# 	Array[String] read1 = fastq.read1
+# 	Array[String] read2 = fastq.read2
+
+# 	command <<<
+# 		# echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
+# 		echo -e "~{fastq.library}\t~{fastq.pkrId}\t~{fastq.R1}\t~{fastq.sampleType}\t~{sep=',' read1}\t~{sep=',' read2}\t~{fastq.genome}\t~{fastq.notes}" > row.tsv
+# 	>>>
+
+# 	output {
+# 		File row = 'row.tsv'
+# 	}
+
+# 	runtime {
+# 		docker: "ubuntu:latest"
+# 		disks: "local-disk ~{diskSize} ~{diskType}"
+# 	}
+# }
+
+# task GatherOutputs {
+# 	input {
+# 		Array[File] rows
+# 		String name
+# 		File metaCsv
+# 		String dockerImage
+# 	}
+
+# 	command <<<
+# 		echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
+# 		cat ~{sep=' ' rows} >> fastq.tsv
+
+# 		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta ~{metaCsv}
+# 	>>>
+
+# 	runtime {
+# 		docker: dockerImage
+# 	}
+# 	output {
+# 		File rna_tsv = "rna.tsv"
+# 		File rna_no_tsv = "rna_no.tsv"
+# 		File atac_tsv = "atac.tsv"
+# 		File run_tsv = "run.tsv"
+# 	}
+# }
+
+# task TerraUpsert {
+# 	input {
+# 		File rna_tsv
+# 		File rna_no_tsv
+# 		File atac_tsv
+# 		File run_tsv
+# 		String terra_project
+# 		String workspace_name
+# 		String dockerImage
+# 	}
 	
-	command <<<
-		set -e
-		python3 /software/flexible_import_entities_standard.py \
-			-t "~{rna_tsv}" \
-			-p "~{terra_project}" \
-			-w "~{workspace_name}"
+# 	command <<<
+# 		set -e
+# 		python3 /software/flexible_import_entities_standard.py \
+# 			-t "~{rna_tsv}" \
+# 			-p "~{terra_project}" \
+# 			-w "~{workspace_name}"
 		
-		python3 /software/flexible_import_entities_standard.py \
-			-t "~{rna_no_tsv}" \
-			-p "~{terra_project}" \
-			-w "~{workspace_name}"
+# 		python3 /software/flexible_import_entities_standard.py \
+# 			-t "~{rna_no_tsv}" \
+# 			-p "~{terra_project}" \
+# 			-w "~{workspace_name}"
 
-		python3 /software/flexible_import_entities_standard.py \
-			-t "~{atac_tsv}" \
-			-p "~{terra_project}" \
-			-w "~{workspace_name}"
+# 		python3 /software/flexible_import_entities_standard.py \
+# 			-t "~{atac_tsv}" \
+# 			-p "~{terra_project}" \
+# 			-w "~{workspace_name}"
 
-		python3 /software/flexible_import_entities_standard.py \
-			-t "~{run_tsv}" \
-			-p "~{terra_project}" \
-			-w "~{workspace_name}"
-	>>>
+# 		python3 /software/flexible_import_entities_standard.py \
+# 			-t "~{run_tsv}" \
+# 			-p "~{terra_project}" \
+# 			-w "~{workspace_name}"
+# 	>>>
 	
-	runtime {
-		docker: dockerImage
-		memory: "2 GB"
-		cpu: 1
-	}
+# 	runtime {
+# 		docker: dockerImage
+# 		memory: "2 GB"
+# 		cpu: 1
+# 	}
 	
-	output {
-		Array[String] upsert_response = read_lines(stdout())
-	}
-}
+# 	output {
+# 		Array[String] upsert_response = read_lines(stdout())
+# 	}
+# }

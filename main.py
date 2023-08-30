@@ -86,7 +86,7 @@ def format_import_inputs(project, request):
 def format_shareseq_import_inputs(project, request):
     return dict_to_bytes_io(
         {
-            "SSBclToFastq.bcl": "gs://{0}-ss-bcls/{1}.tar".format(
+            "SSBclToFastq.bcl": "gs://{0}-ss-bcls/{1}.tar.gz".format(
                 project, request.get("bcl")
             ),
             "SSBclToFastq.candidateMolecularBarcodes": request.get(
@@ -95,8 +95,8 @@ def format_shareseq_import_inputs(project, request):
             "SSBclToFastq.candidateMolecularIndices": request.get(
                 "candidate_molecular_indices"
             ),
-            "SSBclToFastq.readStructure": request.get("read_structure"),
-            "SSBclToFastq.sequencingCenter": request.get("sequencing_center"),
+            # "SSBclToFastq.readStructure": request.get("read_structure"),
+            # "SSBclToFastq.sequencingCenter": request.get("sequencing_center"),
             "SSBclToFastq.pipelines": request.get("pipelines"),
             "SSBclToFastq.dockerImage": "nchernia/share_task_preprocess:18",
             "SSBclToFastq.outputDir": "gs://{0}-ss-lane-subsets/".format(project),
@@ -127,7 +127,7 @@ wdls = {
     "cnv": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/cnv.wdl",
     "import": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/imports.wdl",
     "chipseq": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/chipseq.wdl",
-    "share-seq-import": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/shareseq_imports.wdl",
+    "share-seq-import": "https://raw.githubusercontent.com/broadinstitute/epi-lims-workflows/release/wdls/shareseq_imports.wdl",
 }
 
 formatters = {

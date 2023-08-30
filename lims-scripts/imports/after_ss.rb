@@ -11,7 +11,7 @@ sequencing_technology = 'SHARE-seq'
 
 
 def insert_barcodes(barcodes, key, round_barcode_set, round_barcode_set_list)
-    full_list = round_barcode_set_list.unshift(round_barcode_set.name)
+    full_list = round_barcode_set_list.unshift(round_barcode_set.name.gsub(' ', '_'))
     if barcodes.key?(key)
         barcodes[key].append(full_list)
     else
@@ -111,7 +111,7 @@ submit_jobs([{
         pkrId: pipeline_inputs[:pkr_ids],
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
-        outputJson: 'gs://broad-epi-bcl-output-jsons/' + subj.id.to_s + '.json',
+        outputJson: 'gs://broad-epi-ss-bcl-output-jsons/' + subj.id.to_s + '.json',
         context: {
             poolAliquotUID: subj.id,
             projects: [],
