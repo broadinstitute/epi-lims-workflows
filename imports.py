@@ -46,7 +46,7 @@ def import_alignments(project, username, password, alignments, ref_seq, commands
                 "ESTIMATED_LIBRARY_SIZE Picard": alignment["estimatedLibrarySize"],
             }
         )
-    return import_subjects(project, username, password, "Alignment", alignments)
+    return import_subjects(project, username, password, "Alignment", lims_alignments)
 
 
 def import_app(
@@ -107,9 +107,9 @@ def import_app(
 def import_segmentations(
     project, username, password, segmentations, app_name, software
 ):
-    segmentations = []
-    for segmentation in "segmentations":
-        segmentations.append(
+    lims_segmentations = []
+    for segmentation in segmentations:
+        lims_segmentations.append(
             {
                 # 'Pipeline_Version': pipelineVersion,
                 "Segmenter": segmentation["peakStyle"],
@@ -120,7 +120,7 @@ def import_segmentations(
                 # 'Projects': projectsSet,
             }
         )
-    return import_subjects(project, username, password, "Segmentation", segmentations)
+    return import_subjects(project, username, password, "Segmentation", lims_segmentations)
 
 
 def import_track(project, username, password, track, app_name, software, commands):
@@ -139,14 +139,63 @@ def import_track(project, username, password, track, app_name, software, command
         },
     )
 
+def import_lanes(project, username, password, context, outputs):
+    lims_lanes = []
+    lanes = outputs["laneOutputs"]
+    lane_type = "Paired" if lanes[0]["libraryOutputs"][0]["read2"] else "Single"
+    for lane_output in outputs["laneOutputs"]:
+        lims_lanes.append(
+            {
+                "Flow Cell": outputs["flowcellId"],
+                "Instrument Model": "Illumina " + context["instrumentModel"],
+                "Instrument Name": outputs["instrumentId"],
+                "Run Registration Date": context["runDate"],
+                "Run End Date": context["runDate"],
+                "Lane-of-FC": str(lane_output["lane"]),
+                "Lane Type": lane_type
+            }
+        )
+    return import_subjects(project, username, password, "LIMS_Lane", lims_lanes)
+
+
+def import_ss_lane_subsets(project, username, password, context, outputs, lims_lanes):
+    lane_subsets = []
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes.split(',')):
+        for library_output in lane_output["libraryOutputs"]:
+            lane_subsets.append({
+                "LIMS_Lane": lims_lane,
+                "Reads 1 Filename URI": library_output["reads1"],
+                "Reads 2 Filename URI": library_output["reads2"] or '',
+                # SS_CoPA
+            })
+    return import_subjects(project, username, password, "SS-LS", lane_subsets)
+    
 
 def import_bcl_outputs(project, username, password, outputs):
+    # Import Lanes, CopSeqReqs, LaneSubsets
+    # Can likely use import_lanes above for this function
+    # Update Pool Aliquot
+    # Launch ChipSeq workflow? 
     pass
 
 
 def import_shareseq_import_outputs(project, username, password, outputs):
+    # TODO missing Project information
     print("importing share seq import workflow outputs")
-    pass
+    print(outputs)
+    print("parsing context")
+    context = json.loads(outputs["context"])
+    print(context)
+    
+    print("Importing LIMS_Lanes")
+    lims_lanes = import_lanes(
+        project, username, password, context, outputs
+    )
+
+    print("Importing SS-Lane Subsets")
+    import_ss_lane_subsets(
+        project, username, password, context, outputs, lims_lanes
+    )
 
 
 def import_chipseq_outputs(project, username, password, outputs):

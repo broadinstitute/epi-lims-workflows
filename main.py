@@ -183,6 +183,8 @@ def launch_cromwell(request):
     responses = []
     for req in request_json["jobs"]:
         print(req)
+        print(len(req))
+        # TODO print size of req
         # Submit the workflow to cromwell
         inputs = formatters[req["workflow"]](project, req)
         submission_manifest = {

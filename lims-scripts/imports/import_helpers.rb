@@ -19,6 +19,7 @@ def parse_run_parameters(run_parameters_file, sequencing_technology)
     run_params = {
         folder_name: find_xml_value('RunId', xml),
         experiment_name: find_xml_value('ExperimentName', xml),
+        # TODO change this
         instrument_model: 'NextSeq',
         max_mismatches: is_chip ? 1 : 2,
         min_mismatch_delta: is_chip ? 1 : 2,
