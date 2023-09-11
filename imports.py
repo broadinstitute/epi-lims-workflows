@@ -166,7 +166,7 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
                 "LIMS_Lane": lims_lane,
                 "Reads 1 Filename URI": library_output["reads1"],
                 "Reads 2 Filename URI": library_output["reads2"] or '',
-                # SS_CoPA
+                # TODO SS_CoPA
             })
     return import_subjects(project, username, password, "SS-LS", lane_subsets)
     
