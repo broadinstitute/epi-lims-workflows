@@ -28,8 +28,11 @@ def format_pipeline_inputs(copas)
     round2_barcodes = {}
     round3_barcodes = {}
     pkr_barcode_groups = {}
+    copa_ids = []
 
     copas.each do |copa|
+        copa_ids.append(copa.id)
+
         # Grab all the required values per CoPA from the LIMS data model
         pc = copa.get_value('SS-PC')
         library_type = pc.get_value('SS_Library_Type')
@@ -84,7 +87,8 @@ def format_pipeline_inputs(copas)
         :multiplex_params => multiplex_params,
         :round1_barcodes => round1_barcodes.values(),
         :round2_barcodes => round2_barcodes.values(),
-        :round3_barcodes => round3_barcodes.values()
+        :round3_barcodes => round3_barcodes.values(),
+        :copa_ids => copa_ids
     }
 end
 
@@ -108,6 +112,7 @@ submit_jobs([{
         round1Barcodes: pipeline_inputs[:round1_barcodes],
         round2Barcodes: pipeline_inputs[:round2_barcodes],
         round3Barcodes: pipeline_inputs[:round3_barcodes],
+        ssCopas: pipeline_inputs[:copa_ids],
         pkrId: pipeline_inputs[:pkr_ids],
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
