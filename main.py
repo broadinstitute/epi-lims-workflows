@@ -165,7 +165,6 @@ def launch_cromwell(request):
     )
 
     sa_key = json.loads(decrypt_response.plaintext)
-    print(json.dumps(sa_key))
 
     # Get authorization header for Cromwell SA
     credentials = service_account.Credentials.from_service_account_info(
@@ -182,9 +181,6 @@ def launch_cromwell(request):
     # Submit jobs
     responses = []
     for req in request_json["jobs"]:
-        print(req)
-        print(len(req))
-        # TODO print size of req
         # Submit the workflow to cromwell
         inputs = formatters[req["workflow"]](project, req)
         submission_manifest = {
@@ -197,6 +193,8 @@ def launch_cromwell(request):
         response = requests.post(
             endpoint, data=submission_manifest, auth=None, headers=header
         )
+        print("cromwell response:", response.status_code)
+        print("cromwell response:", response.text)
         responses.append({"subj_name": req["subj_name"], "response": response.json()})
         # Start the bcl transfer for import workflows
         # if req['workflow'] == 'import':
