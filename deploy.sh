@@ -184,7 +184,12 @@ gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:$FUNCTION_SA" \
   --role "roles/eventarc.eventReceiver"
 
-# Get LIMS username/password
+# Give Cloud Functions SA permission to write to bucket
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member "serviceAccount:$FUNCTION_SA" \
+  --role "roles/storage.objectCreator"
+
+# Get LIMS api user username/password	
 LIMS_SECRET=$(gcloud secrets versions access 1 --secret lims-api-user)
 LIMS_USERNAME=$(echo $LIMS_SECRET | cut -d',' -f1)
 LIMS_PASSWORD=$(echo $LIMS_SECRET | cut -d',' -f2)
