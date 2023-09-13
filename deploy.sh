@@ -52,8 +52,14 @@ CROMWELL_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   }" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 
+echo "Registering lims-cromwell-user with Sam"
+
 # Register the Cromwell SA with Sam
 curl -sH "Authorization: Bearer ${CROMWELL_TOKEN}" "https://sam.dsde-prod.broadinstitute.org/register/user/v1" -d ""
+
+echo "Registered lims-cromwell-user with Sam"
+echo $TOKEN
+echo $CLOUDBUILD_SA
 
 # Get an auth token for cloudbuild SA
 CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
