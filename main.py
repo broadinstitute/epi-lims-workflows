@@ -206,10 +206,14 @@ def launch_cromwell(request):
 
 @functions_framework.cloud_event
 def on_workflow_done(cloud_event):
+    print("on_workflow_done triggered")
+
     # Grab lims user/password from secret
     username = os.environ.get("LIMS_USERNAME")
     password = os.environ.get("LIMS_PASSWORD")
     project = os.environ.get("PROJECT")
+
+    print("downloading file")
 
     # Download Cromwell job outputs from GCS
     outputs = download_gcs_file(cloud_event.data["bucket"], cloud_event.data["name"])
