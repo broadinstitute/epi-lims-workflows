@@ -22,8 +22,11 @@ FUNCTION_SA="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 # The SA for Google Cloud Storage
 GCS_SA=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)
 
-# The SA for EventArc, which relays bucket events to cloud fns
+# The SA for EventArc, which relays bucket events to cloud fns via PubSub
 EVENTARC_SA="service-$PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com"
+
+# The SA for PubSub, a relay between bucket events and EventArc
+PUBSUB_SA="service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com"
 
 # Uses local google identity, the default cloudbuild service account
     # <project_id>@cloudbuild.gserviceaccount.com
@@ -165,10 +168,10 @@ echo "Deployed Cromwell launcher function"
 gsutil iam ch "serviceAccount:$EVENTARC_SA:legacyBucketReader" gs://$PROJECT-workflow-outputs
 gsutil iam ch "serviceAccount:$EVENTARC_SA:objectViewer" gs://$PROJECT-workflow-outputs
 
-# TODO Cloud Pub/Sub needs the role roles/iam.serviceAccountTokenCreator
-# granted to service account service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com
-# on this project to create identity tokens. You can change this later.
-# I did this manually while debugging
+# Gives PubSub SA permission to use EventArc
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member serviceAccount:$PUBSUB_SA \
+  --role roles/iam.serviceAccountTokenCreator
 
 # Give GCS SA permission to publish notifications on bucket event
 gcloud projects add-iam-policy-binding $PROJECT \
