@@ -31,7 +31,7 @@ def format_pipeline_inputs(copas)
     copa_ids = []
 
     copas.each do |copa|
-        copa_ids.append(copa.id)
+        copa_ids.append(copa.name)	
 
         # Grab all the required values per CoPA from the LIMS data model
         pc = copa.get_value('SS-PC')
@@ -116,7 +116,7 @@ submit_jobs([{
         pkrId: pipeline_inputs[:pkr_ids],
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
-        outputJson: 'gs://broad-epi-ss-bcl-output-jsons/' + subj.id.to_s + '.json',
+        outputJson: 'gs://broad-epi-workflow-outputs/' + subj.id.to_s + '.json',
         context: {
             poolAliquotUID: subj.id,
             projects: [],

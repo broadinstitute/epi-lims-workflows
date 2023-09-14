@@ -157,16 +157,16 @@ def import_lanes(project, username, password, context, outputs):
         )
     return import_subjects(project, username, password, "LIMS_Lane", lims_lanes)
 
-
 def import_ss_lane_subsets(project, username, password, context, outputs, lims_lanes):
     lane_subsets = []
-    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes.split(',')):
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes['names'].split(',')):
         for library_output in lane_output["libraryOutputs"]:
             lane_subsets.append({
                 "LIMS_Lane": lims_lane,
-                "Reads 1 Filename URI": library_output["reads1"],
-                "Reads 2 Filename URI": library_output["reads2"] or '',
-                # TODO SS_CoPA
+                "Reads 1 Filename URI": library_output["read1"],
+                "Reads 2 Filename URI": library_output["read2"] or '',
+                "SS-CoPA": library_output["name"]
+
             })
     return import_subjects(project, username, password, "SS-LS", lane_subsets)
     

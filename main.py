@@ -219,7 +219,7 @@ def on_workflow_done(cloud_event):
     outputs = download_gcs_file(cloud_event.data["bucket"], cloud_event.data["name"])
 
     # Parse Cromwell job outputs and write to LIMS
-    workflow = outputs["workflow"]
+    workflow = outputs["workflowType"]
     print(f"Workflow completion: {workflow}")
     workflow_parsers[workflow](project, username, password, outputs)
 

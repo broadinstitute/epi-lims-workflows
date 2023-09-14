@@ -29,6 +29,7 @@ struct PipelineInputs {
   Array[Array[Array[String]]] round2Barcodes
   Array[Array[Array[String]]] round3Barcodes
 
+  Array[String] ssCopas
   Array[String] pkrId
   Array[String] sampleType
   # String genome
@@ -42,6 +43,7 @@ struct PipelineInputs {
 }
 
 struct Copa {
+	String name
 	String pkrId
 	String libraryBarcode
 	String barcodeSequence
@@ -79,6 +81,7 @@ struct LaneOutput {
 }
 
 struct PipelineOutputs {
+  String workflowType
   Array[LaneOutput] laneOutputs
 #   Float meanReadLength
 #   Float mPfFragmentsPerLane
@@ -202,6 +205,7 @@ workflow SSBclToFastq {
 					barcodes = p.round3Barcodes[i]
 			}
 			Copa copa_map = object {
+				name: p.ssCopas[i],
 				pkrId: p.pkrId[i],
 				libraryBarcode: p.multiplexParams[i][0],
 				barcodeSequence: p.multiplexParams[i][1],
@@ -270,7 +274,7 @@ workflow SSBclToFastq {
 				}
 
 				LibraryOutput libraryOutput = object {
-					name: getLibraryName.library,
+					name: copa.name,
 					read1: BamToFastq.out.read1[0],
 					read2: BamToFastq.out.read2[0]
 				}
@@ -289,6 +293,7 @@ workflow SSBclToFastq {
 		}
 
 		PipelineOutputs outputs = object {
+			workflowType: 'share-seq-import',
 			laneOutputs: laneOutput,
 			# meanReadLength: BasecallMetrics.meanReadLength[0],
 			# mPfFragmentsPerLane: AggregatePfFragments.mPfFragmentsPerLane,

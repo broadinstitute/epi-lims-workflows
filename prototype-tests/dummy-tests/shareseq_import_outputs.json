@@ -1,60 +1,61 @@
 {
-  "context": "{\"poolAliquotUID\":511864,\"projects\":[],\"sequencingTechnology\":\"SHARE-seq\",\"instrumentModel\":\"NextSeq\",\"experimentName\":\"ttay\",\"folderName\":\"211122_SL-NVY_0218_BH53HMDMXY\",\"runDate\":\"11/22/2021\",\"genomeName\":\"hg19\"}",
-  "laneOutputs": [
-    {
-      "lane": 1,
-      "libraryOutputs": [
-        {
-          "name": "503908|scATAC",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-0/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scATAC_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-0/glob-428fa312bffda8065cac556283bfa88e/503908|scATAC_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503908|scRNA",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-1/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scRNA_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-1/glob-428fa312bffda8065cac556283bfa88e/503908|scRNA_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503912|scATAC",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-2/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scATAC_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-2/glob-428fa312bffda8065cac556283bfa88e/503912|scATAC_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503912|scRNA",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-3/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scRNA_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-3/glob-428fa312bffda8065cac556283bfa88e/503912|scRNA_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        }
-      ],
-      "barcodeMetrics": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ExtractBarcodes/shard-0/cacheCopy/barcode_metrics.tsv"
-    },
-    {
-      "lane": 2,
-      "libraryOutputs": [
-        {
-          "name": "503908|scATAC",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-0/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scATAC_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-0/glob-428fa312bffda8065cac556283bfa88e/503908|scATAC_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503908|scRNA",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-1/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scRNA_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-1/glob-428fa312bffda8065cac556283bfa88e/503908|scRNA_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503912|scATAC",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-2/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scATAC_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-2/glob-428fa312bffda8065cac556283bfa88e/503912|scATAC_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        },
-        {
-          "name": "503912|scRNA",
-          "read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-3/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scRNA_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
-          "read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-3/glob-428fa312bffda8065cac556283bfa88e/503912|scRNA_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
-        }
-      ],
-      "barcodeMetrics": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ExtractBarcodes/shard-1/cacheCopy/barcode_metrics.tsv"
-    }
-  ],
-  "instrumentId": "A01392",
-  "flowcellId": "H53HMDMXY",
-  "runId": 218
+	"workflowType": "share-seq-import",
+	"context": "{\"poolAliquotUID\":511864,\"projects\":[],\"sequencingTechnology\":\"SHARE-seq\",\"instrumentModel\":\"NextSeq\",\"experimentName\":\"ttay\",\"folderName\":\"211122_SL-NVY_0218_BH53HMDMXY\",\"runDate\":\"11/22/2021\",\"genomeName\":\"hg19\"}",
+	"laneOutputs": [
+		{
+			"lane": 1,
+			"libraryOutputs": [
+				{
+					"name": "SS-CoPA 160",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-0/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scATAC_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-0/glob-428fa312bffda8065cac556283bfa88e/503908|scATAC_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 163",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-1/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scRNA_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-1/glob-428fa312bffda8065cac556283bfa88e/503908|scRNA_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 161",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-2/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scATAC_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-2/glob-428fa312bffda8065cac556283bfa88e/503912|scATAC_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 162",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-3/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scRNA_L1_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-0/ScatterAt243_12/88acd32d-8954-4bfd-8da6-72a56a7ba68d/call-BamToFastq/shard-3/glob-428fa312bffda8065cac556283bfa88e/503912|scRNA_L1_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				}
+			],
+			"barcodeMetrics": "gs://broad-epi-cromwell/workflows/SSBclToFastq/da3bee1f-359b-470b-97d3-56f2b82199fc/call-ScatterAt222_12/shard-0/ScatterAt222_12/02513fc8-ad8d-4254-a21a-f478c57d0d0a/call-ExtractBarcodes/shard-0/cacheCopy/barcode_metrics.tsv"
+		},
+		{
+			"lane": 2,
+			"libraryOutputs": [
+				{
+					"name": "SS-CoPA 160",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-0/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scATAC_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-0/glob-428fa312bffda8065cac556283bfa88e/503908|scATAC_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 163",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-1/glob-6965685bacb1c2c87048009a9fb92fb7/503908|scRNA_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-1/glob-428fa312bffda8065cac556283bfa88e/503908|scRNA_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 161",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-2/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scATAC_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-2/glob-428fa312bffda8065cac556283bfa88e/503912|scATAC_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				},
+				{
+					"name": "SS-CoPA 162",
+					"read1": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-3/glob-6965685bacb1c2c87048009a9fb92fb7/503912|scRNA_L2_SS_V1_ENTIRE_PLATE_R1.fastq.gz",
+					"read2": "gs://broad-epi-cromwell/workflows/SSBclToFastq/ea2b01c5-49c2-48cf-98e9-60d2ae808701/call-ScatterAt218_12/shard-0/ScatterAt218_12/21076cd0-60f4-4495-9597-9462460abfcd/call-ScatterAt243_12/shard-1/ScatterAt243_12/50693dca-7965-4418-a1ed-fba373d07538/call-BamToFastq/shard-3/glob-428fa312bffda8065cac556283bfa88e/503912|scRNA_L2_SS_V1_ENTIRE_PLATE_R2.fastq.gz"
+				}
+			],
+			"barcodeMetrics": "gs://broad-epi-cromwell/workflows/SSBclToFastq/da3bee1f-359b-470b-97d3-56f2b82199fc/call-ScatterAt222_12/shard-0/ScatterAt222_12/02513fc8-ad8d-4254-a21a-f478c57d0d0a/call-ExtractBarcodes/shard-1/cacheCopy/barcode_metrics.tsv"
+		}
+	],
+	"instrumentId": "A01392",
+	"flowcellId": "H53HMDMXY",
+	"runId": 218
 }
