@@ -1,0 +1,90 @@
+{
+  "workflow": "chipseq",
+  "alignmentPostProcessing": {
+    "alignedFragments": 39148718,
+    "alignmentSummaryMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-aggregated_alignment_metrics/metrics.txt",
+    "bai": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-samtools_index_basic/out.bai",
+    "bam": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates_basic/out.bam",
+    "duplicateFragments": 1494314,
+    "duplicationMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates_basic/metrics.txt",
+    "estimatedLibrarySize": 499683637,
+    "fingerprintFile": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-genotyping_fingerprint/fingerprint.bam",
+    "fingerprintSelfLOD": 2229.4517,
+    "insertSizeHistogram": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-insert_size_metrics/histogram.pdf",
+    "percentDuplicateFragments": 3.817,
+    "percentMito": 0.030157,
+    "predictedEpitopes": [
+      {
+        "name": "H3K9ac",
+        "probability": 0.386
+      },
+      {
+        "name": "H3K27ac",
+        "probability": 0.2849
+      }
+    ],
+    "totalFragments": 40733944,
+    "vplot": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-vplot/stats.txt.png",
+    "vplotScore": 9.997176
+  },
+  "alignments": [
+    {
+      "alignedFragments": 10002179,
+      "alignmentSummaryMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-pcasm/shard-0/metrics.txt",
+      "bai": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-samtools_index/shard-0/out.bai",
+      "bam": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates/shard-0/out.bam",
+      "duplicateFragments": 211427,
+      "duplicationMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates/shard-0/metrics.txt",
+      "estimatedLibrarySize": 235569705,
+      "laneSubsetName": "Lane Subset 49753",
+      "libraryName": "DNA_Lib 13499",
+      "percentDuplicateFragments": 2.2047
+    },
+    {
+      "alignedFragments": 9974679,
+      "alignmentSummaryMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-pcasm/shard-1/metrics.txt",
+      "bai": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-samtools_index/shard-1/out.bai",
+      "bam": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates/shard-1/out.bam",
+      "duplicateFragments": 211346,
+      "duplicationMetrics": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-picard_mark_duplicates/shard-1/metrics.txt",
+      "estimatedLibrarySize": 234327078,
+      "laneSubsetName": "Lane Subset 49752",
+      "libraryName": "DNA_Lib 13499",
+      "percentDuplicateFragments": 2.2096
+    }
+  ],
+  "commandOutlines": {
+    "alignment": "bwa mem; samtools view; samtools merge; samtools sort; picard MarkDuplicates; samtools index; picard CollectAlignmentSummaryMetrics",
+    "alignmentPostProcessing": "picard MergeSamFiles; picard MarkDuplicates; samtools index; picard CollectAlignmentSummaryMetrics",
+    "track": "igvtools count --minMapQuality 1 --pairs; wigToBigWig -clip"
+  },
+  "context": "{\"aggregation\":{\"name\":\"Pool Component 24363\",\"type\":\"Pool_Component\",\"uid\":512859},\"cellTypes\":\"WI-38\",\"epitopes\":\"H3K27ac\",\"lims7\":true,\"pipelineVersion\":\"git-cf6e690\",\"projects\":{\"Lane Subset 76206\":[],\"Lane Subset 76224\":[],\"Lane Subset 76242\":[],\"Lane Subset 76260\":[]},\"speciesCommonName\":\"Human\"}",
+  "genomeName": "hg19",
+  "segmentations": [
+    {
+      "bed": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-sort_result_file/shard-0/sorted.bed",
+      "peakStyle": "factor",
+      "segmentCount": 60963,
+      "spot": 0.17355532967670925
+    },
+    {
+      "bed": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-sort_result_file/shard-1/sorted.bed",
+      "peakStyle": "histone",
+      "segmentCount": 72694,
+      "spot": 0.6468236756582311
+    }
+  ],
+  "softwareVersions": {
+    "bedtools2": "2.30.0",
+    "bwa": "0.7.17",
+    "homer": "4.11.1",
+    "igv": "2.13.2",
+    "picard": "2.27.4",
+    "samtools": "1.15.1",
+    "wigToBigWig": "2.8"
+  },
+  "track": {
+    "bigWig": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-wigtobigwig/out_track.bw",
+    "tdf": "gs://broad-epi-cromwell/workflows/ChipSeq/33bcea13-a9e9-4ce8-b7f9-6e786a43a77c/call-igvtools_count/out.tdf"
+  }
+}

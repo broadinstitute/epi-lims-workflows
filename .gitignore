@@ -1,1 +1,2 @@
-*.json
+prototype-tests/keys/*.json
+.vscode
