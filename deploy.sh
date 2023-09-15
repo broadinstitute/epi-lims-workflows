@@ -96,6 +96,7 @@ gcloud projects add-iam-policy-binding $PROJECT \
 #     eventarc.googleapis.com \
 #     artifactregistry.googleapis.com \
 #     run.googleapis.com \
+#     vpcaccess.googleapis.com \
 #     --quiet
 
 # if no key exists for the Cromwell SA, create one, encrypt it
@@ -212,5 +213,6 @@ gcloud functions deploy on-workflow-done \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
     --trigger-event-filters="bucket=$PROJECT-workflow-outputs" \
     --service-account=$FUNCTION_SA \
+    --ingress-settings internal-only \
     --set-env-vars PROJECT=$PROJECT,LIMS_USERNAME=$LIMS_USERNAME,LIMS_PASSWORD=$LIMS_PASSWORD
 # TODO add retry flag? https://cloud.google.com/functions/docs/bestpractices/retries

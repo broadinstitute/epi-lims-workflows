@@ -5,32 +5,26 @@ from requests.exceptions import HTTPError
 
 # NOTE: password can be found in GCP Secret Manager
 
-username = 'lims-api-user'
+username = "lims-api-user"
 password = sys.argv[1]
 # url = 'https://lims.dev-epi.broadinstitute.org/api'
-url = 'https://lims.epi.broadinstitute.org/api'
+url = "https://lims.epi.broadinstitute.org/api"
 
 
 def get_token():
     response = requests.post(
         url,
-        params={
-            'method': 'gen_token',
-            'username': username,
-            'password': password
-        },
-        headers={
-            'Content-Type': 'application/json'
-        }
+        params={"method": "gen_token", "username": username, "password": password},
+        headers={"Content-Type": "application/json"},
     )
-    return response.json()['auth_token']
+    return response.json()["auth_token"]
 
 
 def query_lims(json_data):
     params = {
-        'method': 'subjects',
-        'username': username,
-        'password': password
+        "method": "subjects",
+        "username": username,
+        "password": password
         # You can also use a refresh token, but don't need to
         # 'auth_token': get_token()
     }
@@ -38,43 +32,38 @@ def query_lims(json_data):
         response = requests.get(
             url,
             params={**params, **json_data},
-            headers={
-                'Content-Type': 'application/json'
-            }
+            headers={"Content-Type": "application/json"},
         )
     except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')
+        print(f"HTTP error occurred: {http_err}")
     except Exception as err:
-        print(f'Error: {err}')
+        print(f"Error: {err}")
     else:
-        print('Success!')
+        print("Success!")
         print(response.json())
 
 
 def import_subjects(subject_type, data):
     params = {
-        'method': 'import_subjects',
-        'subject_type': subject_type,
-        'username': username,
-        'password': password,
-        'json': json.dumps(data)
+        "method": "import_subjects",
+        "subject_type": subject_type,
+        "username": username,
+        "password": password,
+        "json": json.dumps(data),
     }
     try:
         response = requests.get(
-            url,
-            params=params,
-            headers={
-                'Content-Type': 'application/json'
-            }
+            url, params=params, headers={"Content-Type": "application/json"}
         )
     except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')
+        print(f"HTTP error occurred: {http_err}")
     except Exception as err:
-        print(f'Error: {err}')
+        print(f"Error: {err}")
     else:
-        print('Success!')
+        print("Success!")
         print(response.json())
         return response.json()
+
 
 # query_lims({
 #     'subject_type': 'Alignment Post Processing',
@@ -185,35 +174,45 @@ def import_subjects(subject_type, data):
 
 #### SIMULATE IMPORTING SHARE-SEQ IMPORT OUTPUTS
 
-outputs = json.loads(open('shareseq_import_outputs.json', 'r').read())
-context = json.loads(outputs['context'])
-lims_lanes = []
-lanes = outputs["laneOutputs"]
-lane_type = 'Paired' if lanes[0]["libraryOutputs"][0]["read2"] else 'Single'
-for lane_output in outputs["laneOutputs"]:
-    lims_lanes.append(
-        {
-            "Flow Cell": outputs["flowcellId"],
-            "Instrument Model": "Illumina " + context["instrumentModel"],
-            "Instrument Name": outputs["instrumentId"],
-            "Run Registration Date": context["runDate"],
-            "Run End Date": context["runDate"],
-            "Lane-of-FC": str(lane_output["lane"]),
-            "Lane Type": lane_type
-        }
-    )
-print(lims_lanes)
-print('importing LIMS_Lanes')
-lims_lanes = import_subjects("LIMS_Lane", lims_lanes)
+# outputs = json.loads(open('shareseq_import_outputs.json', 'r').read())
+# context = json.loads(outputs['context'])
+# lims_lanes = []
+# lanes = outputs["laneOutputs"]
+# lane_type = 'Paired' if lanes[0]["libraryOutputs"][0]["read2"] else 'Single'
+# for lane_output in outputs["laneOutputs"]:
+#     lims_lanes.append(
+#         {
+#             "Flow Cell": outputs["flowcellId"],
+#             "Instrument Model": "Illumina " + context["instrumentModel"],
+#             "Instrument Name": outputs["instrumentId"],
+#             "Run Registration Date": context["runDate"],
+#             "Run End Date": context["runDate"],
+#             "Lane-of-FC": str(lane_output["lane"]),
+#             "Lane Type": lane_type
+#         }
+#     )
+# print(lims_lanes)
+# print('importing LIMS_Lanes')
+# lims_lanes = import_subjects("LIMS_Lane", lims_lanes)
 
-lane_subsets = []
-for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes['names'].split(',')):
-    for library_output in lane_output["libraryOutputs"]:
-        lane_subsets.append({
-            "LIMS_Lane": lims_lane,
-            "Reads 1 Filename URI": library_output["read1"],
-            "Reads 2 Filename URI": library_output["read2"] or '',
-            # SS_CoPA
-        })
-print(lane_subsets)
-import_subjects("SS-LS", lane_subsets)
+# lane_subsets = []
+# for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes['names'].split(',')):
+#     for library_output in lane_output["libraryOutputs"]:
+#         lane_subsets.append({
+#             "LIMS_Lane": lims_lane,
+#             "Reads 1 Filename URI": library_output["read1"],
+#             "Reads 2 Filename URI": library_output["read2"] or '',
+#             # SS_CoPA
+#         })
+# print(lane_subsets)
+# import_subjects("SS-LS", lane_subsets)
+
+import_subjects(
+    "Acronym",
+    [
+        {
+            "Long name": "Morgane",
+            "Description1": "Morg",
+        }
+    ],
+)
