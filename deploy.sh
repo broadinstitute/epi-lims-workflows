@@ -148,7 +148,9 @@ ENCRYPTED_KEY=$(gcloud beta runtime-config configs variables \
   --config-name "${CONFIG}")
 
 # Deploy Cromwell launcher function, passing encrypted key
-# as env variable
+# as env variable. Note that it's unauthenticated, but we
+# set up a load balancer and firewall around it elsewhere
+# to secure it. 
 gcloud functions deploy cromwell-launcher \
     --gen2 \
     --runtime=python310 \
@@ -157,6 +159,7 @@ gcloud functions deploy cromwell-launcher \
     --entry-point=launch_cromwell \
     --trigger-http \
     --allow-unauthenticated \
+    --ingress-settings internal-and-gclb \
     --set-env-vars KEY=$ENCRYPTED_KEY,KMS_KEY=$KMS_KEY,KMS_LOCATION=$KMS_LOCATION,PROJECT=$PROJECT,ENDPOINT=$CROMWELL_ENDPOINT
 
 echo "Deployed Cromwell launcher function"
