@@ -185,11 +185,6 @@ workflow SSBclToFastq {
 		Float bclSize = size(bcl, 'G')
 		Float memory = ceil(1.4 * bclSize + 147) / lengthLanes
 		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
-
-		call make_map {
-			input:
-				multiplexParams = p.multiplexParams
-		}
 		
 		scatter(i in range(length(p.pkrId))){
 			call make_tsv as round1 {
@@ -204,11 +199,16 @@ workflow SSBclToFastq {
 				input:
 					barcodes = p.round3Barcodes[i]
 			}
+			call rev_comp {
+				input: 
+					name = p.multiplexParams[i][0],
+					seq = p.multiplexParams[i][1]
+			}
 			Copa copa_map = object {
 				name: p.ssCopas[i],
 				pkrId: p.pkrId[i],
-				libraryBarcode: p.multiplexParams[i][0],
-				barcodeSequence: p.multiplexParams[i][1],
+				libraryBarcode: rev_comp.id,
+				barcodeSequence: rev_comp.out,
 				round1: round1.tsv,
 				round2: round2.tsv,
 				round3: round3.tsv,
@@ -217,6 +217,8 @@ workflow SSBclToFastq {
 
 			String uid = p.multiplexParams[i][0]
 		}
+
+		Map[String, String] libraryBarcodes = as_map(zip(rev_comp.id, rev_comp.out))
 		Map[String, Copa] map = as_map(zip(uid, copa_map))
 
 		scatter (lane in lanes) {
@@ -224,7 +226,7 @@ workflow SSBclToFastq {
 				input:
 					bcl = bcl,
 					untarBcl = untarBcl,
-					libraryBarcodes = make_map.libraryBarcodes,
+					libraryBarcodes = libraryBarcodes,
 					barcodeStructure = barcodeStructure,
 					lane = lane,
 					dockerImage = dockerImage,
@@ -236,7 +238,7 @@ workflow SSBclToFastq {
 					bcl = bcl,
 					untarBcl = untarBcl,
 					barcodes = ExtractBarcodes.barcodes,
-					libraryBarcodes = make_map.libraryBarcodes,
+					libraryBarcodes = libraryBarcodes,
 					readStructure = ExtractBarcodes.readStructure,
 					lane = lane,
 					sequencingCenter = sequencingCenter,
@@ -379,6 +381,26 @@ task make_tsv {
 
 	output {
 		File tsv = write_tsv(barcodes)
+	}
+
+	runtime {
+		docker: "ubuntu:latest"
+	}
+}
+
+task rev_comp {
+	input {
+		String name
+		String seq
+	}
+
+	command <<<
+		echo ~{seq} | tr 'ATCGatcg' 'TAGCtagc' | rev
+	>>>
+
+	output {
+		String id = name
+		String out = read_string(stdout())
 	}
 
 	runtime {
