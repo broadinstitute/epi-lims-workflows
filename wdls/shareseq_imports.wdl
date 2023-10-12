@@ -376,11 +376,45 @@ task make_tsv {
 		Array[Array[String]] barcodes
 	}
 
+	File raw_tsv = write_tsv(barcodes)
+
 	command <<<
+		# Define a function to calculate the reverse complement of a DNA sequence
+		reverse_complement() {
+			local sequence="$1"
+			local reversed_sequence=$(echo "$sequence" | rev)
+			local complement=$(echo "$reversed_sequence" | tr 'ATCGatcg' 'TAGCtagc')
+			echo "$complement"
+		}
+
+		# Input TSV file
+		input_file=~{raw_tsv}
+
+		# Output TSV file
+		output_file="output.tsv"
+
+		# Check if the input file exists
+		if [ -e "$input_file" ]; then
+			# Process each line in the input file
+			while IFS=$'\t' read -r -a line; do
+				name="${line[0]}"
+				# Join the DNA sequences with tabs, skipping the first element
+				dna_sequences=$(IFS=$'\t'; echo "${line[@]:1}")
+				
+				# Calculate the reverse complement for the DNA sequences
+				reversed_dna_sequences=$(reverse_complement "$dna_sequences" | tr ' ' '\t')
+
+				# Write the results to the output file
+				echo -e "$name\t$reversed_dna_sequences" >> "$output_file"
+			done < "$input_file"
+		else
+			echo "Input file not found: $input_file"
+			exit 1
+		fi	
 	>>>
 
 	output {
-		File tsv = write_tsv(barcodes)
+		File tsv = "output.tsv"
 	}
 
 	runtime {
