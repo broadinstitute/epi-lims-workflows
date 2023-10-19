@@ -20,9 +20,12 @@ extend UI
 
 # TODO assumes Human for now
 species_common_name = 'Human'
-sequencing_technology = 'SHARE-Seq'
-ss_library = subj['SS-CoPA SBR'][0]
+ss_pool_component = subj['SS-CoPA SBR'][0]
     .get_value('SS-PC')
+sequencing_technology = ss_pool_component
+    .get_value('SS-Pool')
+    .get_value('Sequencing Technology')
+ss_library = ss_pool_component
     .get_value('SS-Library')
 sequencing_schema = (ss_library.get_value('MO scATAC Lib') ? ss_library.get_value('MO scATAC Lib') : ss_library.get_value('MO scRNA Lib'))
     .get_value('Molecular Barcode')
@@ -36,18 +39,25 @@ params[:custom_fields] = UIUtils.encode_fields([
         title: "<b>SS-Pool Aliquot(s): #{pa_names}</b>",
         items: [
             field_container([
+                # udf(
+                #     'HiSeqRun',
+                #     nil,
+                #     fieldLabel: 'HiSeqRun',
+                #     required: false,
+                #     defaultValue: subj['HiSeqRun']
+                # ),
                 udf(
-                    'HiSeqRun',
+                    'Data delivery bucket',
                     nil,
-                    fieldLabel: 'HiSeqRun',
-                    required: false,
-                    defaultValue: subj['HiSeqRun']
+                    fieldLabel: 'Data delivery bucket',
+                    required: true,
+                    defaultValue: subj['Data delivery bucket']
                 ),
                 udf(
                     'HiSeq Folder Name',
                     nil,
                     fieldLabel: 'HiSeq Folder Name',
-                    required: false,
+                    required: true,
                     defaultValue: subj['HiSeq Folder Name']
                 ),
                 udf(
@@ -61,7 +71,7 @@ params[:custom_fields] = UIUtils.encode_fields([
                     'text_attribute_for_tasks',
                     nil,
                     fieldLabel: 'Species Common Name',
-                    required: true,
+                    required: false,
                     defaultValue: species_common_name
                 ),
                 udf(
@@ -80,15 +90,15 @@ params[:custom_fields] = UIUtils.encode_fields([
             field_container([
                 # TODO possibly get rid of this - we might only be receiving
                 # bcls from GCS now for share-seq
-                udf(
-                    'text_attribute_for_tasks2',
-                    nil,
-                    fieldLabel: 'Parent path on NFS',
-                    required: false,
-                    defaultValue: 'Note: this may just be GCS'
-                ),
+                # udf(
+                #     'text_attribute_for_tasks2',
+                #     nil,
+                #     fieldLabel: 'Parent path on NFS',
+                #     required: false,
+                #     defaultValue: 'Note: this may just be GCS'
+                # ),
                 # NOTE this UDF has to be created in LIMS as a File type
-                udf('Run Parameters File', nil, required: true)
+                udf('Run Parameters File', nil, required: false)
             ])
         ]
     )

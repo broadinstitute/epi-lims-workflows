@@ -29,7 +29,7 @@ struct PipelineInputs {
   Array[Array[Array[String]]] round2Barcodes
   Array[Array[Array[String]]] round3Barcodes
 
-  Array[String] ssCopas
+  Array[Array[String]] ssCopas
   Array[String] pkrId
   Array[String] sampleType
   # String genome
@@ -43,7 +43,7 @@ struct PipelineInputs {
 }
 
 struct Copa {
-	String name
+	Array[String] name
 	String pkrId
 	String libraryBarcode
 	String barcodeSequence
@@ -59,8 +59,10 @@ struct Fastq {
 	String R1
 	String sampleType
 	String genome
+	String notes
 	Array[String] read1
 	Array[String] read2
+	Array[String] whitelist
 }
 
 struct LibraryOutput {
@@ -90,6 +92,7 @@ struct PipelineOutputs {
   Int runId
   String flowcellId
   String instrumentId
+  String runDate
 #   String picardVersion
   String? context
 }
@@ -141,10 +144,10 @@ workflow SSBclToFastq {
 		Map[String, String] candidateMolecularIndices
 
 		# URI of the Docker image with analysis tools
-		String dockerImage = "nchernia/share_task_preprocess:18"
+		String dockerImage = "us.gcr.io/buenrostro-share-seq/share_task_preprocess"
 	}
 
-	String barcodeStructure = "14S10M28S10M28S9M8B"
+	String barcodeStructure = "99M8B"
 	String sequencingCenter = "BI"
 	String tar_flags = if zipped then 'xzf' else 'xf'
 	String untarBcl =
@@ -263,7 +266,7 @@ workflow SSBclToFastq {
 
 				Copa copa = map[getLibraryName.library]
 
-				call BamToFastq { 
+				call BamToRawFastq { 
 					input: 
 						bam = bam,
 						pkrId = copa.pkrId,
@@ -275,21 +278,43 @@ workflow SSBclToFastq {
 						dockerImage = dockerImage
 				}
 
-				LibraryOutput libraryOutput = object {
-					name: copa.name,
-					read1: BamToFastq.out.read1[0],
-					read2: BamToFastq.out.read2[0]
+				scatter(i in range(length(BamToRawFastq.out.read1))){
+					call Transfer {
+						input:
+							read1 = BamToRawFastq.out.read1[0],
+							read2 = BamToRawFastq.out.read2[0],
+							whitelist = BamToRawFastq.out.whitelist[0]
+					}
+
+					LibraryOutput libraryOutput = object {
+						name: Transfer.name,
+						read1: Transfer.read1,
+						read2: Transfer.read2
+					}
 				}
 
-				# call WriteTsvRow {
-				# 	input:
-				# 		fastq = BamToFastq.out
-				# }
-			}
+				Fastq transferred = object {
+					pkrId: BamToRawFastq.out.pkrId,
+					library: BamToRawFastq.out.library,
+					R1: BamToRawFastq.out.R1,
+					sampleType: BamToRawFastq.out.sampleType,
+					genome: BamToRawFastq.out.genome,
+					notes: BamToRawFastq.out.notes,
+					read1: Transfer.read1,
+					read2: Transfer.read2,
+					whitelist: Transfer.whitelist
+				}
 
+				call WriteTsvRow {
+					input:
+						fastq = BamToRawFastq.out
+				}
+
+
+			}
 			LaneOutput laneOutput = object {
 				lane: lane,
-				libraryOutputs: libraryOutput,
+				libraryOutputs: flatten(libraryOutput),
 				barcodeMetrics: ExtractBarcodes.barcodeMetrics
 			}
 		}
@@ -304,33 +329,34 @@ workflow SSBclToFastq {
 			runId: BasecallsToBams.runId[0],
 			flowcellId: BasecallsToBams.flowcellId[0],
 			instrumentId: BasecallsToBams.instrumentId[0],
+			runDate: BasecallsToBams.runDate[0],
 			# picardVersion: GetVersion.picard,
 			context: p.context,
 		}
 
 		call AggregateBarcodeQC {
 			input:
-				barcodeQCs = flatten(BamToFastq.qc)
+				barcodeQCs = flatten(BamToRawFastq.R1barcodeQC)
 		}
 
 		call QC {
 			input:
 				barcodeMetrics = ExtractBarcodes.barcodeMetrics
 		}
-
+		
+		call GatherOutputs {
+			input:
+				rows = flatten(WriteTsvRow.row),
+				name =  if zipped then basename(bcl, ".tar.gz") else basename(bcl, ".tar"),
+				dockerImage = dockerImage
+		}
+		
 		call OutputJson {
 			input:
 				outputs = outputs,
 				outputFile = p.outputJson,
 		}
 	}
-	# call GatherOutputs { # OPTIONAL
-	# 	input:
-	# 		rows = flatten(WriteTsvRow.row),
-	# 		name =  if zipped then basename(bcl, ".tar.gz") else basename(bcl, ".tar"),
-	# 		metaCsv = metaCsv, 
-	# 		dockerImage = dockerImage
-	# }
 
 	# call TerraUpsert { # OPTIONAL
 	# 	input:
@@ -349,8 +375,8 @@ workflow SSBclToFastq {
 	# 	Array[File] monitoringLogsExtract = ExtractBarcodes.monitoringLog
 	# 	Array[File] monitoringLogsBasecalls = BasecallsToBams.monitoringLog		
     #     File BarcodeQC = AggregateBarcodeQC.laneQC
-	# 	# Array[Fastq] fastqs = flatten(BamToFastq.out)
-	# 	# Array[Array[Array[File]]] fastqs = BamToFastq.fastqs
+	# 	# Array[Fastq] fastqs = flatten(BamToRawFastq.out)
+	# 	# Array[Array[Array[File]]] fastqs = BamToRawFastq.fastqs
 	# }
 }
 
@@ -445,10 +471,16 @@ task rev_comp {
 task BarcodeMap {
 	input {
 		File metaCsv
+		Int lane
 	}
 
 	command <<<
-		tail -n +6 ~{metaCsv} | cut -d, -f2 |  sed 's/ /\t/' > barcodes.tsv
+		if tail -n +5 ~{metaCsv} | head -1 | grep -q Lanes 
+		then 		
+			tail -n +6 ~{metaCsv} | awk -F "," -v num=~{lane} '{split($6,a," "); for(i in a) {if (a[i] == num) print $0}}' | cut -d, -f2 |  sed 's/ /\t/' > barcodes.tsv
+		else
+			tail -n +6 ~{metaCsv} | cut -d, -f2 |  sed 's/ /\t/' > barcodes.tsv
+		fi
 	>>>
 
 	output {
@@ -476,9 +508,12 @@ task GetLanes {
 	Int diskSize = ceil(2.1 * bclSize)
 	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 	# Float memory = ceil(5.4 * bclSize + 147) * 0.25
+	String monitorLog = "get_lanes_monitor.log"
 
 	command <<<
 		set -e
+
+		bash $(which monitor_script.sh) | tee ~{monitorLog} 1>&2 &
 
 		~{untarBcl}
 		tail -n+2 SampleSheet.csv | cut -d, -f2
@@ -486,6 +521,7 @@ task GetLanes {
 
 	output {
 		Array[Int] lanes = read_lines(stdout())
+		File monitorLog = monitorLog
 	}
 
 	runtime {
@@ -525,19 +561,25 @@ task ExtractBarcodes {
 	Int diskSize = ceil(2.1 * bclSize)
 	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-	Int javaMemory = ceil((memory - 0.5) * 1000)
+	Int javaMemory = ceil((memory * 0.9) * 1000)
 
-        String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+    String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+	
+	String monitorLog = "extract_barcodes_monitor.log"
+
 	command <<<
 		set -e
-		bash /software/monitor_script.sh > monitoring.log &
+		
+		bash $(which monitor_script.sh) > ~{monitorLog} 2>&1 &
+
 		~{laneUntarBcl}
 
 		# append terminating line feed
 		sed -i -e '$a\' ~{barcodesMap}
 
-		readLength=$(xmlstarlet sel -t -v "/RunInfo/Run/Reads/Read/@NumCycles" RunInfo.xml | head -n 1)T
-		readStructure=${readLength}"~{barcodeStructure}"${readLength}
+		read1Length=$(xmlstarlet sel -t -v "/RunInfo/Run/Reads/Read/@NumCycles" RunInfo.xml | head -n 1)
+		read2Length=$(xmlstarlet sel -t -v "/RunInfo/Run/Reads/Read/@NumCycles" RunInfo.xml | tail -n 1)
+		readStructure=${read1Length}T"~{barcodeStructure}"${read2Length}T
 		echo ${readStructure} > readStructure.txt
 
 		printf "barcode_name\tbarcode_sequence1" | tee "~{barcodeParamsFile}"
@@ -572,7 +614,7 @@ task ExtractBarcodes {
 		String readStructure = read_string("readStructure.txt")
 		File barcodeMetrics = barcodeMetricsFile
 		File barcodes = write_lines(glob("*_barcode.txt.gz"))
-		File monitoringLog = "monitoring.log"
+		File monitorLog = monitorLog
 	}
 }
 
@@ -605,11 +647,15 @@ task BasecallsToBams {
 
 	Int diskSize = ceil(5 * bclSize)
 	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
-	Int javaMemory = ceil((memory - 0.5) * 1000)
-        String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+	Int javaMemory = ceil((memory * 0.9) * 1000)
+	String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+	String monitorLog = "basecalls_to_bams_monitor.log"
+
 	command <<<
 		set -e
-		bash /software/monitor_script.sh > monitoring.log &
+		
+		bash $(which monitor_script.sh) > ~{monitorLog} 2>&1 &
+
 		~{laneUntarBcl}
 		time gsutil -m cp -I . < "~{barcodes}"
 		
@@ -617,26 +663,36 @@ task BasecallsToBams {
 		sed -i -e '$a\' ~{barcodesMap}
 
 		# extract run parameters
-	get_param () {
-		param=$(xmlstarlet sel -t -v "/RunInfo/Run/$1" RunInfo.xml)
-		echo "${param}" | tee "$2"
-	}
-	RUN_ID=$(get_param "@Number" "~{runIdFile}")
-	FLOWCELL_ID=$(get_param "Flowcell" "~{flowcellIdFile}")
-	INSTRUMENT_ID=$(get_param "Instrument" "~{instrumentIdFile}")
+		get_param () {
+			param=$(xmlstarlet sel -t -v "/RunInfo/Run/$1" RunInfo.xml)
+			echo "${param}" | tee "$2"
+		}
+		RUN_ID=$(get_param "@Number" "~{runIdFile}")
+		FLOWCELL_ID=$(get_param "Flowcell" "~{flowcellIdFile}")
+		INSTRUMENT_ID=$(get_param "Instrument" "~{instrumentIdFile}")
 
-	# prepare library parameter files
-	LIBRARY_PARAMS="library_params.tsv"
-	printf "SAMPLE_ALIAS\tLIBRARY_NAME\tOUTPUT\tBARCODE_1\n" | tee "${LIBRARY_PARAMS}"
-	while read -r params; do	
-		name=$(echo "${params}" | cut -d$'\t' -f1)
-		barcodes=$(echo "${params}" | cut -d$'\t' -f2-)
-		printf "\n%s\t%s\t%s_L%d.bam\t%s" \
-			"${name}" "${name}" "${name// /_}" "~{lane}" "${barcodes}" \
-			| tee -a "${LIBRARY_PARAMS}"
-	done < "~{barcodesMap}"
-	# generate BAMs
-	java -Xmx~{javaMemory}m -jar /software/picard.jar IlluminaBasecallsToSam \
+		parse_run_date () {
+			run_date="$1"
+			year="20${run_date:0:2}"
+			month="${run_date:2:2}"
+			day="${run_date:4:2}"
+			echo "${month}/${day}/${year}"
+		}
+		runStartDate=$(xmlstarlet sel -t -v "/RunParameters/RunStartDate" RunParameters.xml)
+		parse_run_date $runStartDate > run_date.txt
+
+		# prepare library parameter files
+		LIBRARY_PARAMS="library_params.tsv"
+		printf "SAMPLE_ALIAS\tLIBRARY_NAME\tOUTPUT\tBARCODE_1\n" | tee "${LIBRARY_PARAMS}"
+		while read -r params; do	
+			name=$(echo "${params}" | cut -d$'\t' -f1)
+			barcodes=$(echo "${params}" | cut -d$'\t' -f2-)
+			printf "\n%s\t%s\t%s_L%d.bam\t%s" \
+				"${name}" "${name}" "${name// /_}" "~{lane}" "${barcodes}" \
+				| tee -a "${LIBRARY_PARAMS}"
+		done < "~{barcodesMap}"
+		# generate BAMs
+		java -Xmx~{javaMemory}m -jar /software/picard.jar IlluminaBasecallsToSam \
 			BASECALLS_DIR="Data/Intensities/BaseCalls" \
 			BARCODES_DIR=. \
 			TMP_DIR=. \
@@ -664,7 +720,8 @@ task BasecallsToBams {
 		Int runId = read_int("~{runIdFile}")
 		String flowcellId = read_string("~{flowcellIdFile}")
 		String instrumentId = read_string("~{instrumentIdFile}")
-        File monitoringLog = "monitoring.log"
+		String runDate = read_string("run_date.txt")
+		File monitorLog = monitorLog
 	}
 }
 
@@ -723,9 +780,8 @@ task getLibraryName {
 }
 
 
-task BamToFastq {
-	# Convert unmapped, library-separated bams to fastqs
-	# will assign cell barcode to read name 
+task BamToRawFastq {
+	# Convert unmapped, library-separated bams to raw (uncorrected) FASTQs
 	# assigns UMI for RNA to read name and adapter trims for ATAC
 
 	# Defaults to file R1.txt in the src/python directory if no round barcodes given
@@ -735,42 +791,35 @@ task BamToFastq {
 		String library
 		String sampleType
 		String genome = 'hg38'
-		# Array[Array[String]] R1barcodeSet
-		# Array[Array[String]]? R2barcodes
-		# Array[Array[String]]? R3barcodes
+		String notes = ''
 		File R1barcodeSet
 		File? R2barcodes
 		File? R3barcodes
 		String dockerImage
+		Float? diskFactor = 5
+		Float? memory = 8
 	}
 
+	String monitorLog = "bam_to_raw_fastq_monitor.log"
 	String prefix = basename(bam, ".bam")
 	
 	Float bamSize = size(bam, 'G')
-
-	Int diskSize = ceil(bamSize + 5)
+	Int diskSize = ceil(diskFactor * bamSize)
 	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-	Float memory = ceil(1.5 * bamSize + 1) * 2
-
-
-	# Workaround since write_tsv does not take type "?", must be defined
-	# Array[Array[String]] R2_if_defined = select_first([R2barcodes, []])
-	# Array[Array[String]] R3_if_defined = select_first([R3barcodes, []])
-
-	# Use round 1 default barcode set in rounds 2 and 3 if not sent in
-	File R1file = R1barcodeSet #write_tsv(R1barcodeSet)
-	File R2file = if defined(R2barcodes)
-					# then write_tsv(R2_if_defined) else R1file
-					then R2barcodes else R1barcodeSet
-	File R3file = if defined(R3barcodes)
-					# then write_tsv(R3_if_defined) else R1file
-					then R3barcodes else R1barcodeSet
-
-
 	command <<<
-		samtools addreplacerg -r '@RG\tID:~{pkrId}' "~{bam}" -o tmp.bam
-		python3 /software/bam_fastq.py tmp.bam ~{R1file} ~{R2file} ~{R3file} -p "~{prefix}" -s ~{sampleType}
+		set -e
+		
+		bash $(which monitor_script.sh) | tee ~{monitorLog} 1>&2 &
+
+		# Create raw FASTQs from unaligned bam
+		python3 /software/bam_to_raw_fastq.py \
+			"~{bam}" \
+			~{pkrId} \
+			"~{prefix}" \
+			~{R1barcodeSet} \
+			~{if defined(R2barcodes) then "--r2_barcode_file ~{R2barcodes}" else ""} \
+			~{if defined(R3barcodes) then "--r3_barcode_file ~{R3barcodes}" else ""}
 
 		gzip *.fastq
 	>>>
@@ -782,12 +831,13 @@ task BamToFastq {
 			R1: R1barcodeSet,
 			sampleType: sampleType,
 			genome: genome,
+			notes: notes,
 			read1: glob("*R1.fastq.gz"),
-			read2: glob("*R2.fastq.gz")
+			read2: glob("*R2.fastq.gz"),
+			whitelist: glob("*whitelist.txt")
 		}
-
-		File qc = 'qc.txt'
-		# Array[File] fastqs = glob("*.fastq")
+		File R1barcodeQC = "~{prefix}_R1_barcode_qc.txt"
+		File monitorLog = monitorLog
 	}
 	runtime {
 		docker: dockerImage
@@ -802,13 +852,12 @@ task AggregateBarcodeQC {
 	}
 
 	command <<<
-		echo -e "LIB_BARCODE\tEXACT\tPASS\tFAIL_MISMATCH\tFAIL_HOMOPOLYMER\tFAIL_UMI" > final.txt
-		cat ~{sep=" " barcodeQCs} >> final.txt
-		# awk 'BEGIN{FS="\t"; OFS="\t"} {x+=$1; y+=$2; z+=$3} END {print x,y,z}' combined.txt > final.txt
+		echo -e "library\texact_match\tnonexact_match\tnonmatch\tpoly_G_barcode" > R1_barcode_stats.txt
+		cat "~{sep='" "' barcodeQCs}" >> R1_barcode_stats.txt
 	>>>
 	
 	output {
-		File laneQC = 'final.txt'
+		File laneQC = 'R1_barcode_stats.txt'
 	}
 	
 	runtime {
@@ -840,6 +889,50 @@ task QC {
 	}
 }
 
+task Transfer {
+	input {
+		File read1
+		File read2
+		File whitelist
+		String bucket = "gs://broad-epi-ss-lane-subsets"
+	}
+
+	Int diskSize = ceil(size([read1, read2], 'G') * 2.2 + 1)
+	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
+
+	command <<<
+		IFS="_" read -ra fields <<< "~{basename(read1)}"
+		library="${fields[0]}"
+		lane="${fields[1]}"
+		pkr="${fields[2]}"
+		copa="${fields[3]}"
+
+		dest_r1="~{bucket}"/${copa}_${lane}_R1.fastq.gz
+		dest_r2="~{bucket}"/${copa}_${lane}_R2.fastq.gz
+		dest_wl="~{bucket}"/${copa}_whitelist.txt
+
+		gsutil cp "~{read1}" ${dest_r1}
+		gsutil cp "~{read2}" ${dest_r2}
+
+		echo "${copa}" > copa.txt
+		echo "${dest_r1}" > read1.txt
+		echo "${dest_r2}" > read2.txt
+		echo "${dest_wl}" > whitelist.txt
+	>>>
+
+	output {
+		String name = read_string("copa.txt")
+		String read1 = read_string("read1.txt")
+		String read2 = read_string("read2.txt")
+		String whitelist = read_string("whitelist.txt")	
+	}
+
+	runtime {
+		docker: "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+		disks: "local-disk ~{diskSize} ~{diskType}"
+	}
+}
+
 task OutputJson {
 	input {
 		PipelineOutputs outputs
@@ -855,98 +948,96 @@ task OutputJson {
 	}
 }
 
-# task WriteTsvRow {
-# 	input {
-# 		Fastq fastq
-# 	}
-# 	Float fastqSize = size(fastq.read1[0], 'G')
-#         Int diskSize = ceil(2.2 * length(fastq.read1)*fastqSize)
-#         String diskType = if diskSize > 375 then "SSD" else "LOCAL"
-# 	Array[String] read1 = fastq.read1
-# 	Array[String] read2 = fastq.read2
+task WriteTsvRow {
+	input {
+		Fastq fastq
+	}
+	Array[String] read1 = fastq.read1
+	Array[String] read2 = fastq.read2
+	Array[String] whitelist = fastq.whitelist
 
-# 	command <<<
-# 		# echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
-# 		echo -e "~{fastq.library}\t~{fastq.pkrId}\t~{fastq.R1}\t~{fastq.sampleType}\t~{sep=',' read1}\t~{sep=',' read2}\t~{fastq.genome}\t~{fastq.notes}" > row.tsv
-# 	>>>
+	command <<<
+		# echo -e "Library\tPKR\tR1_subset\tType\tWhitelist\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
+		echo -e "~{fastq.library}\t~{fastq.pkrId}\t~{fastq.R1}\t~{fastq.sampleType}\t~{sep=',' whitelist}\t~{sep=',' read1}\t~{sep=',' read2}\t~{fastq.genome}\t~{fastq.notes}" > row.tsv
+	>>>
 
-# 	output {
-# 		File row = 'row.tsv'
-# 	}
+	output {
+		File row = 'row.tsv'
+	}
 
-# 	runtime {
-# 		docker: "ubuntu:latest"
-# 		disks: "local-disk ~{diskSize} ~{diskType}"
-# 	}
-# }
+	runtime {
+		docker: "ubuntu:latest"
+	}
+}
 
-# task GatherOutputs {
-# 	input {
-# 		Array[File] rows
-# 		String name
-# 		File metaCsv
-# 		String dockerImage
-# 	}
+task GatherOutputs {
+	input {
+		Array[File] rows
+		String name
+		String dockerImage
+	}
 
-# 	command <<<
-# 		echo -e "Library\tPKR\tR1_subset\tType\tfastq_R1\tfastq_R2\tGenome\tNotes" > fastq.tsv
-# 		cat ~{sep=' ' rows} >> fastq.tsv
+	command <<<
+		echo -e "Library\tPKR\tR1_subset\tType\tWhitelist\tRaw_FASTQ_R1\tRaw_FASTQ_R2\tGenome\tNotes" > fastq.tsv
+		cat ~{sep=' ' rows} >> fastq.tsv
 
-# 		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta ~{metaCsv}
-# 	>>>
+		echo "test,test" > test.csv
 
-# 	runtime {
-# 		docker: dockerImage
-# 	}
-# 	output {
-# 		File rna_tsv = "rna.tsv"
-# 		File rna_no_tsv = "rna_no.tsv"
-# 		File atac_tsv = "atac.tsv"
-# 		File run_tsv = "run.tsv"
-# 	}
-# }
+		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta test.csv
+	>>>
 
-# task TerraUpsert {
-# 	input {
-# 		File rna_tsv
-# 		File rna_no_tsv
-# 		File atac_tsv
-# 		File run_tsv
-# 		String terra_project
-# 		String workspace_name
-# 		String dockerImage
-# 	}
+	runtime {
+		docker: dockerImage
+	}
+	output {
+		File rna_tsv = "rna.tsv"
+		File rna_no_tsv = "rna_no.tsv"
+		File atac_tsv = "atac.tsv"
+		File run_tsv = "run.tsv"
+	}
+}
+
+task TerraUpsert {
+	input {
+		File rna_tsv
+		File rna_no_tsv
+		File atac_tsv
+		File run_tsv
+		String terra_project
+		String workspace_name
+		String dockerImage
+	}
 	
-# 	command <<<
-# 		set -e
-# 		python3 /software/flexible_import_entities_standard.py \
-# 			-t "~{rna_tsv}" \
-# 			-p "~{terra_project}" \
-# 			-w "~{workspace_name}"
+	command <<<
+		set -e
+		python3 /software/flexible_import_entities_standard.py \
+			-t "~{rna_tsv}" \
+			-p "~{terra_project}" \
+			-w "~{workspace_name}"
 		
-# 		python3 /software/flexible_import_entities_standard.py \
-# 			-t "~{rna_no_tsv}" \
-# 			-p "~{terra_project}" \
-# 			-w "~{workspace_name}"
+		python3 /software/flexible_import_entities_standard.py \
+			-t "~{rna_no_tsv}" \
+			-p "~{terra_project}" \
+			-w "~{workspace_name}"
 
-# 		python3 /software/flexible_import_entities_standard.py \
-# 			-t "~{atac_tsv}" \
-# 			-p "~{terra_project}" \
-# 			-w "~{workspace_name}"
+		python3 /software/flexible_import_entities_standard.py \
+			-t "~{atac_tsv}" \
+			-p "~{terra_project}" \
+			-w "~{workspace_name}"
 
-# 		python3 /software/flexible_import_entities_standard.py \
-# 			-t "~{run_tsv}" \
-# 			-p "~{terra_project}" \
-# 			-w "~{workspace_name}"
-# 	>>>
+		python3 /software/flexible_import_entities_standard.py \
+			-t "~{run_tsv}" \
+			-p "~{terra_project}" \
+			-w "~{workspace_name}"
+	>>>
 	
-# 	runtime {
-# 		docker: dockerImage
-# 		memory: "2 GB"
-# 		cpu: 1
-# 	}
+	runtime {
+		docker: dockerImage
+		memory: "2 GB"
+		cpu: 1
+	}
 	
-# 	output {
-# 		Array[String] upsert_response = read_lines(stdout())
-# 	}
-# }
+	output {
+		Array[String] upsert_response = read_lines(stdout())
+	}
+}
