@@ -149,8 +149,8 @@ def import_lanes(project, username, password, context, outputs):
                 "Flow Cell": outputs["flowcellId"],
                 "Instrument Model": "Illumina " + context["instrumentModel"],
                 "Instrument Name": outputs["instrumentId"],
-                "Run Registration Date": context["runDate"],
-                "Run End Date": context["runDate"],
+                "Run Registration Date": outputs["runDate"],
+                "Run End Date": outputs["runDate"],
                 "Lane-of-FC": str(lane_output["lane"]),
                 "Lane Type": lane_type
             }
