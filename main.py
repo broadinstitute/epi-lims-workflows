@@ -190,9 +190,16 @@ def launch_cromwell(request):
             "workflowOnHold": req.get("on_hold", False),
             "workflowOptions": options,
         }
+
+        request_size = len(inputs.getvalue())
+        print("Request Size:", request_size, "bytes")
+
         response = requests.post(
             endpoint, data=submission_manifest, auth=None, headers=header
         )
+        print("Request Headers:", response.request.headers)
+        print("Response Headers:", response.headers)
+
         print("cromwell response:", response.status_code)
         print("cromwell response:", response.text)
         responses.append({"subj_name": req["subj_name"], "response": response.json()})
