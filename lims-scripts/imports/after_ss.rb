@@ -12,7 +12,7 @@ instrument_model = 'NovaSeq'
 
 
 def insert_barcodes(barcodes, key, round_barcode_set, round_barcode_set_list)
-    full_list = round_barcode_set_list.unshift(round_barcode_set.name.gsub(' ', '_'))
+    full_list = round_barcode_set_list.unshift(round_barcode_set.name.gsub(' ', '-'))
     if barcodes.key?(key)
         barcodes[key].append(full_list)
     else
@@ -48,7 +48,7 @@ def format_pipeline_inputs(copas)
         atac = lib.get_value('MO scATAC Lib')
         mo_lib = atac || lib.get_value('MO scRNA Lib')
         lib_barcode = mo_lib.get_value('Molecular Barcode')
-        seq = barcode_lib_barcodename.get_value('Molecular Barcode Sequence')
+        seq = lib_barcode.get_value('Molecular Barcode Sequence')
         pkr = atac ? mo_lib.get_value('SS-PKR') : mo_lib.get_value('MO cDNA').get_value('SS-PKR')
         sse = pkr.get_value('Share Seq Experiment')
         # Round 1 Barcode Set belongs to the library's Share Seq Experiment Component
@@ -71,7 +71,7 @@ def format_pipeline_inputs(copas)
         pkr_barcode_groups[key] = seq
 
         # Group round barcodes and copa names by this unique key
-        insert_barcodes(round1_barcodes, key, copa.name, r1_list)
+        insert_barcodes(round1_barcodes, key, copa, r1_list)
         insert_barcodes(round2_barcodes, key, r2, r2_list)
         insert_barcodes(round3_barcodes, key, r3, r3_list)
 
