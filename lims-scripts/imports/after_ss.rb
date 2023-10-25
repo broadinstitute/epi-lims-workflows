@@ -5,28 +5,15 @@ require_script 'import_helpers'
 require_script 'submit_jobs'
 
 
-# TODO Right now assumes a human (hg19) genome
-genome = 'hg19'
+# TODO Right now assumes a human (hg38) genome
+genome = 'hg38'
 sequencing_technology = 'SHARE-seq'
 instrument_model = 'NovaSeq'
 
 
-def insert_barcodes(barcodes, key, round_barcode_set, round_barcode_set_list)
+def insert_barcodes(barcodes, round_barcode_set, round_barcode_set_list)
     full_list = round_barcode_set_list.unshift(round_barcode_set.name.gsub(' ', '-'))
-    if barcodes.key?(key)
-        barcodes[key].append(full_list)
-    else
-        barcodes[key] = [full_list]
-    end
-end
-
-def insert_copa_names(copa_names, key, name)
-    fixed_name = name.gsub(' ', '-')
-    if copa_names.key?(key)
-        copa_names[key].append(fixed_name)
-    else
-        copa_names[key] = [fixed_name]
-    end
+    barcodes.append([full_list])
 end
 
 # TODO this function is somewhat costly. We could offload some of the
@@ -34,11 +21,13 @@ end
 def format_pipeline_inputs(copas)
     # All pipeline inputs are grouped by unique combinations of
     # PKR and Library types
-    round1_barcodes = {}
-    round2_barcodes = {}
-    round3_barcodes = {}
-    copa_ids = {}
-    pkr_barcode_groups = {}
+    round1_barcodes = []
+    round2_barcodes = []
+    round3_barcodes = []
+    copa_names = []
+    pkr_names = []
+    sample_types = []
+    multiplex_params = []
 
     copas.each do |copa|
         # Grab all the required values per CoPA from the LIMS data model
@@ -64,41 +53,40 @@ def format_pipeline_inputs(copas)
             .map{ |rb| rb.get_value('Round 3 barcode sequence') }
 
         # Unique pkr-library combination
-        key = pkr.name.gsub(' ', '-') + '|' + library_type + '|' + lib_barcode.name
+        # key = pkr.name.gsub(' ', '-') + '|' + library_type + '|' + lib_barcode.name
 
         # Barcode sequence for each key is always the same so it
         # doesn't matter if we overwrite it
-        pkr_barcode_groups[key] = seq
+        # pkr_barcode_groups[key] = seq
 
         # Group round barcodes and copa names by this unique key
-        insert_barcodes(round1_barcodes, key, copa, r1_list)
-        insert_barcodes(round2_barcodes, key, r2, r2_list)
-        insert_barcodes(round3_barcodes, key, r3, r3_list)
+        insert_barcodes(round1_barcodes, r1, r1_list)
+        insert_barcodes(round2_barcodes, r2, r2_list)
+        insert_barcodes(round3_barcodes, r3, r3_list)
 
-        insert_copa_names(copa_ids, key, copa.name)	
+        copa_names.append(copa.name)
+        pkr_names.append(pkr.name)	
+        sample_types.append(library_type)
+        multiplex_params.append([lib_barcode.name.gsub('_','-'), seq])
     end
 
-    pkr_ids = []
-    sample_types = []
-    multiplex_params = []
-
-    pkr_barcode_groups.each do |k, v|
-        pkr_id, sample_type, barcode_name = k.split('|')
-        pkr_ids.append(pkr_id)
-        sample_types.append(sample_type)
-        multiplex_params.append([barcode_name.gsub('_','-'), v])
-    end
+    # pkr_barcode_groups.each do |k, v|
+    #     pkr_id, sample_type, barcode_name = k.split('|')
+    #     pkr_ids.append(pkr_id)
+    #     sample_types.append(sample_type)
+    #     multiplex_params.append([barcode_name.gsub('_','-'), v])
+    # end
 
     # The final count of each of these arrays should be equal
     # to the number of unique PKR Library Type combinations
     return {
-        :pkr_ids => pkr_ids,
+        :pkr_names => pkr_names,
         :sample_types => sample_types,
         :multiplex_params => multiplex_params,
-        :round1_barcodes => round1_barcodes.values(),
-        :round2_barcodes => round2_barcodes.values(),
-        :round3_barcodes => round3_barcodes.values(),
-        :copa_ids => copa_ids.values()
+        :round1_barcodes => round1_barcodes,
+        :round2_barcodes => round2_barcodes,
+        :round3_barcodes => round3_barcodes,
+        :copa_names => copa_names
     }
 end
 
@@ -122,8 +110,8 @@ req = [{
         round1Barcodes: pipeline_inputs[:round1_barcodes],
         round2Barcodes: pipeline_inputs[:round2_barcodes],
         round3Barcodes: pipeline_inputs[:round3_barcodes],
-        ssCopas: pipeline_inputs[:copa_ids],
-        pkrId: pipeline_inputs[:pkr_ids],
+        ssCopas: pipeline_inputs[:copa_names],
+        pkrId: pipeline_inputs[:pkr_names],
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
         outputJson: 'gs://broad-epi-workflow-outputs/' + subj.id.to_s + '.json',
