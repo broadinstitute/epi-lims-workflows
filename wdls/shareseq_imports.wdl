@@ -29,7 +29,7 @@ struct PipelineInputs {
   Array[Array[Array[String]]] round2Barcodes
   Array[Array[Array[String]]] round3Barcodes
 
-  Array[Array[String]] ssCopas
+  Array[String] ssCopas
   Array[String] pkrId
   Array[String] sampleType
   # String genome
@@ -43,7 +43,7 @@ struct PipelineInputs {
 }
 
 struct Copa {
-	Array[String] name
+	String name
 	String pkrId
 	String libraryBarcode
 	String barcodeSequence
@@ -190,6 +190,7 @@ workflow SSBclToFastq {
 		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
 		
 		scatter(i in range(length(p.pkrId))){
+			# TODO: migrate reverse complementing to the after script
 			call make_tsv as round1 {
 				input:
 					barcodes = p.round1Barcodes[i]
@@ -269,7 +270,7 @@ workflow SSBclToFastq {
 				call BamToRawFastq { 
 					input: 
 						bam = bam,
-						pkrId = copa.pkrId,
+						pkrId = sub(copa.pkrId, ' ', '-'),
 						library = copa.libraryBarcode,
 						sampleType = sub(copa.type, 'sc', ''), 
 						R1barcodeSet = copa.round1,
@@ -278,19 +279,18 @@ workflow SSBclToFastq {
 						dockerImage = dockerImage
 				}
 
-				scatter(i in range(length(BamToRawFastq.out.read1))){
-					call Transfer {
-						input:
-							read1 = BamToRawFastq.out.read1[0],
-							read2 = BamToRawFastq.out.read2[0],
-							whitelist = BamToRawFastq.out.whitelist[0]
-					}
+				call Transfer {
+					input:
+						name = sub(copa.name, ' ', '-'),
+						read1 = BamToRawFastq.out.read1[0],
+						read2 = BamToRawFastq.out.read2[0],
+						whitelist = BamToRawFastq.out.whitelist[0]
+				}
 
-					LibraryOutput libraryOutput = object {
-						name: Transfer.name,
-						read1: Transfer.read1,
-						read2: Transfer.read2
-					}
+				LibraryOutput libraryOutput = object {
+					name: copa.name,
+					read1: Transfer.read1,
+					read2: Transfer.read2
 				}
 
 				Fastq transferred = object {
@@ -300,21 +300,19 @@ workflow SSBclToFastq {
 					sampleType: BamToRawFastq.out.sampleType,
 					genome: BamToRawFastq.out.genome,
 					notes: BamToRawFastq.out.notes,
-					read1: Transfer.read1,
-					read2: Transfer.read2,
-					whitelist: Transfer.whitelist
+					read1: [Transfer.read1],
+					read2: [Transfer.read2],
+					whitelist: [Transfer.whitelist]
 				}
 
 				call WriteTsvRow {
 					input:
-						fastq = BamToRawFastq.out
+						fastq = transferred
 				}
-
-
 			}
 			LaneOutput laneOutput = object {
 				lane: lane,
-				libraryOutputs: flatten(libraryOutput),
+				libraryOutputs: libraryOutput,
 				barcodeMetrics: ExtractBarcodes.barcodeMetrics
 			}
 		}
@@ -891,6 +889,7 @@ task QC {
 
 task Transfer {
 	input {
+		String name
 		File read1
 		File read2
 		File whitelist
@@ -905,23 +904,22 @@ task Transfer {
 		library="${fields[0]}"
 		lane="${fields[1]}"
 		pkr="${fields[2]}"
-		copa="${fields[3]}"
+		r1="${fields[3]}"
 
-		dest_r1="~{bucket}"/${copa}_${lane}_R1.fastq.gz
-		dest_r2="~{bucket}"/${copa}_${lane}_R2.fastq.gz
-		dest_wl="~{bucket}"/${copa}_whitelist.txt
+		dest_r1="~{bucket}"/~{name}_${lane}_${pkr}_${r1}_R1.fastq.gz
+		dest_r2="~{bucket}"/~{name}_${lane}_${pkr}_${r1}_R2.fastq.gz
+		dest_wl="~{bucket}"/~{name}_whitelist.txt
 
 		gsutil cp "~{read1}" ${dest_r1}
 		gsutil cp "~{read2}" ${dest_r2}
+		gsutil cp "~{whitelist}" ${dest_wl}
 
-		echo "${copa}" > copa.txt
 		echo "${dest_r1}" > read1.txt
 		echo "${dest_r2}" > read2.txt
 		echo "${dest_wl}" > whitelist.txt
 	>>>
 
 	output {
-		String name = read_string("copa.txt")
 		String read1 = read_string("read1.txt")
 		String read2 = read_string("read2.txt")
 		String whitelist = read_string("whitelist.txt")	
