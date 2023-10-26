@@ -219,10 +219,19 @@ workflow SSBclToFastq {
 				type: p.sampleType[i]
 			}
 
-			String uid = p.multiplexParams[i][0]
+			String uid = p.ssCopas[i]
 		}
 
-		Map[String, String] libraryBarcodes = as_map(zip(rev_comp.id, rev_comp.out))
+		call make_tsv as multiplexParams {
+			input:
+				barcodes = p.multiplexParams
+		}
+
+		call make_map as libraryBarcodes {
+			input:
+				tsv = multiplexParams.tsv
+		}
+
 		Map[String, Copa] map = as_map(zip(uid, copa_map))
 
 		scatter (lane in lanes) {
@@ -230,7 +239,7 @@ workflow SSBclToFastq {
 				input:
 					bcl = bcl,
 					untarBcl = untarBcl,
-					libraryBarcodes = libraryBarcodes,
+					libraryBarcodes = libraryBarcodes.map,
 					barcodeStructure = barcodeStructure,
 					lane = lane,
 					dockerImage = dockerImage,
@@ -242,7 +251,7 @@ workflow SSBclToFastq {
 					bcl = bcl,
 					untarBcl = untarBcl,
 					barcodes = ExtractBarcodes.barcodes,
-					libraryBarcodes = libraryBarcodes,
+					libraryBarcodes = libraryBarcodes.map,
 					readStructure = ExtractBarcodes.readStructure,
 					lane = lane,
 					sequencingCenter = sequencingCenter,
@@ -380,14 +389,14 @@ workflow SSBclToFastq {
 
 task make_map {
 	input {
-		Array[Array[String]] multiplexParams
+		File tsv
 	}
 
 	command <<<
 	>>>
 
 	output {
-		Map[String, String] libraryBarcodes = read_map(write_tsv(multiplexParams))
+		Map[String, String] map = read_map(tsv)
 	}
 
 	runtime {
@@ -428,8 +437,10 @@ task make_tsv {
 				# Calculate the reverse complement for the DNA sequences
 				reversed_dna_sequences=$(reverse_complement "$dna_sequences" | tr ' ' '\t')
 
-				# Write the results to the output file
+				# Write the results to the output file and dedpulicate
 				echo -e "$name\t$reversed_dna_sequences" >> "$output_file"
+				sort -u "$output_file" -o "$output_file"
+
 			done < "$input_file"
 		else
 			echo "Input file not found: $input_file"
