@@ -687,7 +687,7 @@ task BasecallsToBams {
 			day="${run_date:4:2}"
 			echo "${month}/${day}/${year}"
 		}
-		runStartDate=$(xmlstarlet sel -t -v "/RunParameters/RunStartDate" RunParameters.xml)
+		runStartDate=$(xmlstarlet sel -t -v "/RunInfo/Run/@Id" RunInfo.xml | awk -F_ '{print $1}')
 		parse_run_date $runStartDate > run_date.txt
 
 		# prepare library parameter files
