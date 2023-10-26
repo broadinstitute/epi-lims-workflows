@@ -86,9 +86,10 @@ def format_import_inputs(project, request):
 def format_shareseq_import_inputs(project, request):
     return dict_to_bytes_io(
         {
-            "SSBclToFastq.bcl": "gs://{0}-ss-bcls/{1}.tar.gz".format(
-                project, request.get("bcl")
+            "SSBclToFastq.bcl": "{0}/{1}".format(
+                request.get("bucket"), request.get("bcl")
             ),
+            "SSBclToFastq.zipped": request.get("zipped"),
             "SSBclToFastq.candidateMolecularBarcodes": request.get(
                 "candidate_molecular_barcodes"
             ),

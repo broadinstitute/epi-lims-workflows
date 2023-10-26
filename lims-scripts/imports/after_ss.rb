@@ -100,6 +100,8 @@ req = [{
     :subj_name => subj.name,
     :subj_id => subj.id,
     :bcl => params['HiSeq Folder Name'],
+    :bucket => params['Data delivery bucket'],
+    :zipped => params['text_attribute_for_tasks'],
     :candidate_molecular_barcodes => candidate_molecular_barcodes,
     :candidate_molecular_indices => candidate_molecular_indices,
     # Note that wdl expects multiple pipelines for multiple SS-PA
