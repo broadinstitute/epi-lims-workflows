@@ -20,6 +20,7 @@ extend UI
 
 # TODO assumes Human for now
 species_common_name = 'Human'
+zipped = 'false'
 ss_pool_component = subj['SS-CoPA SBR'][0]
     .get_value('SS-PC')
 sequencing_technology = ss_pool_component
@@ -61,6 +62,13 @@ params[:custom_fields] = UIUtils.encode_fields([
                     defaultValue: subj['HiSeq Folder Name']
                 ),
                 udf(
+                    'text_attribute_for_tasks',
+                    nil,
+                    fieldLabel: 'Zipped',
+                    required: true,
+                    defaultValue: zipped
+                ),
+                udf(
                     'Sequencing Technology',
                     nil,
                     fieldLabel: 'Sequencing Technology',
@@ -68,7 +76,7 @@ params[:custom_fields] = UIUtils.encode_fields([
                     defaultValue: sequencing_technology
                 ),
                 udf(
-                    'text_attribute_for_tasks',
+                    'text_attribute_for_tasks2',
                     nil,
                     fieldLabel: 'Species Common Name',
                     required: false,
@@ -91,7 +99,7 @@ params[:custom_fields] = UIUtils.encode_fields([
                 # TODO possibly get rid of this - we might only be receiving
                 # bcls from GCS now for share-seq
                 # udf(
-                #     'text_attribute_for_tasks2',
+                #     'text_attribute_for_tasks3',
                 #     nil,
                 #     fieldLabel: 'Parent path on NFS',
                 #     required: false,
