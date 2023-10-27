@@ -273,9 +273,12 @@ workflow SSBclToFastq {
 					input:
 						bam = basename(bam),
 				}
+			}
 
-				Copa copa = map[getLibraryName.library]
+			Map[String, File] lib_map = as_map(zip(getLibraryName.library, BasecallsToBams.bams))
 
+			scatter(copa in copa_map){
+				File bam = lib_map[copa.libraryBarcode]
 				call BamToRawFastq { 
 					input: 
 						bam = bam,
