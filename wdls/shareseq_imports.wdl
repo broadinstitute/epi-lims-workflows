@@ -1,45 +1,45 @@
 version development
 
 struct PipelineInputs {
-  Array[Int] lanes
+	Array[Int] lanes
 
-  # Parameters for multiplexing, in the format:
-  # [[library_name, barcode_1]]
-  # Example:
-  # [
-  #   ["IDT8_i5_19", "AACCTTGG"],
-  #   ["IDT8_i5_10", "GGTTCCAA"]
-  # ]
-  Array[Array[String]] multiplexParams
+	# Parameters for multiplexing, in the format:
+	# [[library_name, barcode_1]]
+	# Example:
+	# [
+	#   ["IDT8_i5_19", "AACCTTGG"],
+	#   ["IDT8_i5_10", "GGTTCCAA"]
+	# ]
+	Array[Array[String]] multiplexParams
 
-  # Barcodes used in each round:
-  # [[[barcode_1, barcode_2, ...]]]
-  # Example:
-  # [
-  #	  [
-  #     ["SS V1 RIGHT HALF", "AACCTTGG", "AAAATTTT", "ACTGACTG"],
-  #     ["SS V1 LEFT HALF", "GGTTCCAA", "GGGGCCCC", "CAGTCAGT"]	
-  #   ],
-  #	  [
-  #     ["SS V2 RIGHT HALF", "AAAATTTT", "AACCTTGG", "ACTGACTG"],
-  #     ["SS V2 LEFT HALF", "CAGTCAGT", "GGGGCCCC", "GGTTCCAA"]	
-  #   ],
-  # ]
-  Array[Array[Array[String]]] round1Barcodes
-  Array[Array[Array[String]]] round2Barcodes
-  Array[Array[Array[String]]] round3Barcodes
+	# Barcodes used in each round:
+	# [[[barcode_1, barcode_2, ...]]]
+	# Example:
+	# [
+	#	  [
+	#     ["SS V1 RIGHT HALF", "AACCTTGG", "AAAATTTT", "ACTGACTG"],
+	#     ["SS V1 LEFT HALF", "GGTTCCAA", "GGGGCCCC", "CAGTCAGT"]	
+	#   ],
+	#	  [
+	#     ["SS V2 RIGHT HALF", "AAAATTTT", "AACCTTGG", "ACTGACTG"],
+	#     ["SS V2 LEFT HALF", "CAGTCAGT", "GGGGCCCC", "GGTTCCAA"]	
+	#   ],
+	# ]
+	Array[Array[Array[String]]] round1Barcodes
+	Array[Array[Array[String]]] round2Barcodes
+	Array[Array[Array[String]]] round3Barcodes
 
-  Array[String] ssCopas
-  Array[String] pkrId
-  Array[String] sampleType
-  # String genome
+	Array[String] ssCopas
+	Array[String] pkrId
+	Array[String] sampleType
+	# String genome
 
-  # GCS file in which to store the output JSON
-  String outputJson
+	# GCS file in which to store the output JSON
+	String outputJson
 
-  # optional context to pass down
-  # in workflow outputs
-  String? context
+	# optional context to pass down
+	# in workflow outputs
+	String? context
 }
 
 struct Copa {
@@ -66,36 +66,40 @@ struct Fastq {
 }
 
 struct LibraryOutput {
-  String name
-#   Float percentPfClusters
-#   Int meanClustersPerTile
-#   Float pfBases
-#   Float pfFragments
-  String read1
-  String read2
+	String name
+	# Float percentPfClusters
+	# Int meanClustersPerTile
+	# Float pfBases
+	# Float pfFragments
+	String read1
+	String read2
 }
 
 struct LaneOutput {
-  Int lane
-  Array[LibraryOutput] libraryOutputs
-  String barcodeMetrics
-#   File basecallMetrics
+	Int lane
+	Array[LibraryOutput] libraryOutputs
+	String barcodeMetrics
+	# File basecallMetrics
 }
 
 struct PipelineOutputs {
-  String workflowType
-  Array[LaneOutput] laneOutputs
-#   Float meanReadLength
-#   Float mPfFragmentsPerLane
-#   Int maxMismatches
-#   Int minMismatchDelta
-  Int runId
-  String flowcellId
-  String instrumentId
-  String runDate
-#   String picardVersion
-  String? context
+	String workflowType
+	Array[LaneOutput] laneOutputs
+	# Float meanReadLength
+	# Float mPfFragmentsPerLane
+	# Int maxMismatches
+	# Int minMismatchDelta
+	Int runId
+	String flowcellId
+	String instrumentId
+	String runDate
+	# String picardVersion
+	String? context
 }
+
+#TODO
+# lib barcode -> Group map (x)
+# lib barcode + subset -> Copa name map ()
 
 workflow SSBclToFastq {
 	# input {

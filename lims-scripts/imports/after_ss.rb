@@ -6,13 +6,23 @@ require_script 'submit_jobs'
 
 
 # TODO Right now assumes a human (hg38) genome
-genome = 'hg38'
+genome = case params['text_attribute_for_tasks2'].downcase
+    when "human"
+        "hg38"
+    when "mouse"
+        "mm10"
+    else
+        raise "Error: Unknown species common name"
+    end
 sequencing_technology = 'SHARE-seq'
 instrument_model = 'NovaSeq'
 
+def sanitize(string)
+    return string.gsub(' ', '-').gsub('_','-')
+end
 
 def insert_barcodes(barcodes, round_barcode_set, round_barcode_set_list)
-    full_list = round_barcode_set_list.unshift(round_barcode_set.name.gsub(' ', '-'))
+    full_list = round_barcode_set_list.unshift(sanitize(round_barcode_set.name))
     barcodes.append([full_list])
 end
 
@@ -25,6 +35,8 @@ def format_pipeline_inputs(copas)
     round2_barcodes = []
     round3_barcodes = []
     copa_names = []
+    copa_map = []
+    species = []
     pkr_names = []
     sample_types = []
     multiplex_params = []
@@ -34,6 +46,12 @@ def format_pipeline_inputs(copas)
         pc = copa.get_value('SS-PC')
         library_type = pc.get_value('SS_Library_Type')
         lib = pc.get_value('SS-Library')
+        spec = lib.get_value('SSEC')
+            .get_value('BioSAli')
+            .get_value('Biological Sample')
+            .get_value('Donor')
+            .get_value('Cohort')
+            .get_value('Species Common Name')
         atac = lib.get_value('MO scATAC Lib')
         mo_lib = atac || lib.get_value('MO scRNA Lib')
         lib_barcode = mo_lib.get_value('Molecular Barcode')
@@ -65,9 +83,11 @@ def format_pipeline_inputs(copas)
         insert_barcodes(round3_barcodes, r3, r3_list)
 
         copa_names.append(copa.name)
+        copa_map.append([sanitize(lib_barcode.name) + '_' + sanitize(r1.name), copa.name])
+        species.append(spec.name)
         pkr_names.append(pkr.name)	
         sample_types.append(library_type)
-        multiplex_params.append([lib_barcode.name.gsub('_','-'), seq])
+        multiplex_params.append([sanitize(lib_barcode.name), seq])
     end
 
     # pkr_barcode_groups.each do |k, v|
@@ -86,7 +106,9 @@ def format_pipeline_inputs(copas)
         :round1_barcodes => round1_barcodes,
         :round2_barcodes => round2_barcodes,
         :round3_barcodes => round3_barcodes,
-        :copa_names => copa_names
+        :copa_names => copa_names,
+        :copa_map => copa_map,
+        :species => species
     }
 end
 
@@ -113,6 +135,8 @@ req = [{
         round2Barcodes: pipeline_inputs[:round2_barcodes],
         round3Barcodes: pipeline_inputs[:round3_barcodes],
         ssCopas: pipeline_inputs[:copa_names],
+        # copaMap: pipeline_inputs[:copa_map],
+        # species: pipeline_inputs[:species],
         pkrId: pipeline_inputs[:pkr_names],
         sampleType: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
@@ -131,4 +155,4 @@ req = [{
 }]
 Rails.logger.info("#{req.to_json}")
 
-submit_jobs(req)
+# submit_jobs(req)
