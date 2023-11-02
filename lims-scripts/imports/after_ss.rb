@@ -155,4 +155,4 @@ req = [{
 }]
 Rails.logger.info("#{req.to_json}")
 
-# submit_jobs(req)
+submit_jobs(req)

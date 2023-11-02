@@ -868,7 +868,7 @@ task AggregateBarcodeQC {
 	}
 
 	command <<<
-		echo -e "library\texact_match\tnonexact_match\tnonmatch\tpoly_G_barcode" > R1_barcode_stats.txt
+		echo -e "library\texact_match\tmismatch\tleft_shift\right_shift\tnonmatch\tpoly_G_barcode" > R1_barcode_stats.txt
 		cat "~{sep='" "' barcodeQCs}" >> R1_barcode_stats.txt
 	>>>
 	
@@ -999,8 +999,7 @@ task GatherOutputs {
 
 		echo "test,test" > test.csv
 
-		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta test.csv
-	>>>
+		python3 /software/write_terra_tables.py --input 'fastq.tsv' --name ~{name} --meta test.csv	>>>
 
 	runtime {
 		docker: dockerImage
