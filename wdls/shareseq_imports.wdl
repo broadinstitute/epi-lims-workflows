@@ -30,8 +30,9 @@ struct PipelineInputs {
 	Array[Array[Array[String]]] round3Barcodes
 
 	Array[String] ssCopas
-	Array[String] pkrId
-	Array[String] sampleType
+	Array[String] pkrIds
+	Array[String] sampleTypes
+	Array[String] genomes
 	# String genome
 
 	# GCS file in which to store the output JSON
@@ -45,12 +46,13 @@ struct PipelineInputs {
 struct Copa {
 	String name
 	String pkrId
-	String libraryBarcode
+	String library
 	String barcodeSequence
+	String genome
 	File round1
 	File round2
 	File round3
-	String type
+	String sampleType
 }
 
 struct Fastq {
@@ -193,7 +195,7 @@ workflow SSBclToFastq {
 		Float memory = ceil(1.4 * bclSize + 147) / lengthLanes
 		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
 		
-		scatter(i in range(length(p.pkrId))){
+		scatter(i in range(length(p.pkrIds))){
 			# TODO: migrate reverse complementing to the after script
 			call make_tsv as round1 {
 				input:
@@ -214,13 +216,14 @@ workflow SSBclToFastq {
 			}
 			Copa copa_map = object {
 				name: p.ssCopas[i],
-				pkrId: p.pkrId[i],
-				libraryBarcode: rev_comp.id,
+				pkrId: p.pkrIds[i],
+				library: rev_comp.id,
 				barcodeSequence: rev_comp.out,
+				genome: p.genomes[i],
 				round1: round1.tsv,
 				round2: round2.tsv,
 				round3: round3.tsv,
-				type: p.sampleType[i]
+				sampleType: p.sampleTypes[i]
 			}
 
 			String uid = p.ssCopas[i]
@@ -282,13 +285,14 @@ workflow SSBclToFastq {
 			Map[String, File] lib_map = as_map(zip(getLibraryName.library, BasecallsToBams.bams))
 
 			scatter(copa in copa_map){
-				File bam = lib_map[copa.libraryBarcode]
+				File bam = lib_map[copa.library]
 				call BamToRawFastq { 
 					input: 
 						bam = bam,
 						pkrId = sub(copa.pkrId, ' ', '-'),
-						library = copa.libraryBarcode,
-						sampleType = sub(copa.type, 'sc', ''), 
+						library = copa.library,
+						sampleType = sub(copa.sampleType, 'sc', ''),
+						genome = copa.genome, 
 						R1barcodeSet = copa.round1,
 						R2barcodes = copa.round2,
 						R3barcodes = copa.round3,
@@ -806,7 +810,7 @@ task BamToRawFastq {
 		String pkrId
 		String library
 		String sampleType
-		String genome = 'hg38'
+		String genome
 		String notes = ''
 		File R1barcodeSet
 		File? R2barcodes
@@ -868,7 +872,7 @@ task AggregateBarcodeQC {
 	}
 
 	command <<<
-		echo -e "library\texact_match\tmismatch\tleft_shift\right_shift\tnonmatch\tpoly_G_barcode" > R1_barcode_stats.txt
+		echo -e "library\texact_match\tmismatch\tleft_shift\tright_shift\tnonmatch\tpoly_G_barcode" > R1_barcode_stats.txt
 		cat "~{sep='" "' barcodeQCs}" >> R1_barcode_stats.txt
 	>>>
 	

@@ -75,13 +75,13 @@ params[:custom_fields] = UIUtils.encode_fields([
                     required: true,
                     defaultValue: sequencing_technology
                 ),
-                udf(
-                    'text_attribute_for_tasks2',
-                    nil,
-                    fieldLabel: 'Species Common Name',
-                    required: false,
-                    defaultValue: species_common_name
-                ),
+                # udf(
+                #     'text_attribute_for_tasks2',
+                #     nil,
+                #     fieldLabel: 'Species Common Name',
+                #     required: false,
+                #     defaultValue: species_common_name
+                # ),
                 udf(
                     'Sequencing Schema',
                     nil,

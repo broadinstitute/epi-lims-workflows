@@ -6,19 +6,31 @@ require_script 'submit_jobs'
 
 
 # TODO Right now assumes a human (hg38) genome
-genome = case params['text_attribute_for_tasks2'].downcase
-    when "human"
-        "hg38"
-    when "mouse"
-        "mm10"
-    else
-        raise "Error: Unknown species common name"
-    end
+# genome = case params['text_attribute_for_tasks2'].downcase
+#     when "human"
+#         "hg38"
+#     when "mouse"
+#         "mm10"
+#     else
+#         raise "Error: Unknown species common name"
+#     end
 sequencing_technology = 'SHARE-seq'
 instrument_model = 'NovaSeq'
 
 def sanitize(string)
     return string.gsub(' ', '-').gsub('_','-')
+end
+
+def get_genome(species)
+    genome = case species.downcase
+        when /human/
+            "hg38"
+        when /mouse/
+            "mm10"
+        else
+            raise "Error: Unknown species common name"
+        end
+    return genome
 end
 
 def insert_barcodes(barcodes, round_barcode_set, round_barcode_set_list)
@@ -36,7 +48,7 @@ def format_pipeline_inputs(copas)
     round3_barcodes = []
     copa_names = []
     copa_map = []
-    species = []
+    genomes = []
     pkr_names = []
     sample_types = []
     multiplex_params = []
@@ -84,7 +96,7 @@ def format_pipeline_inputs(copas)
 
         copa_names.append(copa.name)
         copa_map.append([sanitize(lib_barcode.name) + '_' + sanitize(r1.name), copa.name])
-        species.append(spec.name)
+        genomes.append(get_genome(spec.name))
         pkr_names.append(pkr.name)	
         sample_types.append(library_type)
         multiplex_params.append([sanitize(lib_barcode.name), seq])
@@ -108,7 +120,7 @@ def format_pipeline_inputs(copas)
         :round3_barcodes => round3_barcodes,
         :copa_names => copa_names,
         :copa_map => copa_map,
-        :species => species
+        :genomes => genomes
     }
 end
 
@@ -136,9 +148,9 @@ req = [{
         round3Barcodes: pipeline_inputs[:round3_barcodes],
         ssCopas: pipeline_inputs[:copa_names],
         # copaMap: pipeline_inputs[:copa_map],
-        # species: pipeline_inputs[:species],
-        pkrId: pipeline_inputs[:pkr_names],
-        sampleType: pipeline_inputs[:sample_types],
+        genomes: pipeline_inputs[:genomes],
+        pkrIds: pipeline_inputs[:pkr_names],
+        sampleTypes: pipeline_inputs[:sample_types],
         # TODO this gcs prefix should not be hardcoded
         outputJson: 'gs://broad-epi-workflow-outputs/' + subj.id.to_s + '.json',
         context: {
@@ -149,7 +161,6 @@ req = [{
             # experimentName: run_parameters[:experiment_name],
             # folderName: run_parameters[:folder_name],
             # runDate: run_parameters[:run_date],
-            genomeName: genome
         }.to_json
     ],
 }]
