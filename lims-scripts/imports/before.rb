@@ -19,7 +19,7 @@
 extend UI
 
 # TODO assumes Human for now
-species_common_name = 'Human'
+# species_common_name = 'Human'
 zipped = 'false'
 ss_pool_component = subj['SS-CoPA SBR'][0]
     .get_value('SS-PC')

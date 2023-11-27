@@ -180,6 +180,17 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
         
     return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
 
+def update_ss_pa(project, username, password, context, outputs):
+    # Update SS-PA with R1 and R2 lengths
+    # TODO single end runs
+    pool_aliquots = []
+    pool_aliquots.append({
+        "UID": context["poolAliquotUID"],
+        "Read1_Length": outputs["r1Length"],
+        "Read2_Length": outputs["r2Length"]
+    })
+    return import_subjects(project, username, password, "SS-PA", pool_aliquots)
+    
 def import_bcl_outputs(project, username, password, outputs):
     # Import Lanes, CopSeqReqs, LaneSubsets
     # Can likely use import_lanes above for this function
