@@ -70,7 +70,7 @@ struct Fastq {
 struct LibraryOutput {
 	String name
 	# Float percentPfClusters
-	# Int meanClustersPerTile
+	# # Int meanClustersPerTile
 	# Float pfBases
 	# Float pfFragments
 	String read1
@@ -92,6 +92,8 @@ struct PipelineOutputs {
 	# Int maxMismatches
 	# Int minMismatchDelta
 	Int runId
+	Int r1Length
+	Int r2Length
 	String flowcellId
 	String instrumentId
 	String runDate
@@ -340,6 +342,8 @@ workflow SSBclToFastq {
 		PipelineOutputs outputs = object {
 			workflowType: 'share-seq-import',
 			laneOutputs: laneOutput,
+			r1Length: ExtractBarcodes.r1Length[0],
+			r2Length: ExtractBarcodes.r2Length[0],
 			# meanReadLength: BasecallMetrics.meanReadLength[0],
 			# mPfFragmentsPerLane: AggregatePfFragments.mPfFragmentsPerLane,
 			# maxMismatches: p.maxMismatches,
@@ -575,6 +579,8 @@ task ExtractBarcodes {
 	Int nBarcodes = 1
 	String barcodeParamsFile = "barcode_params.tsv"
 	String barcodeMetricsFile = "barcode_metrics.tsv"
+	String basecallMetricsFile = "basecall_metrics.tsv"
+	String parsedMetricsFile = "parsed_metrics.tsv"
 
 	Float bclSize = size(bcl, 'G')
 
@@ -598,7 +604,11 @@ task ExtractBarcodes {
 		sed -i -e '$a\' ~{barcodesMap}
 
 		read1Length=$(xmlstarlet sel -t -v "/RunInfo/Run/Reads/Read/@NumCycles" RunInfo.xml | head -n 1)
+		echo ${read1Length} > r1Length.txt
+
 		read2Length=$(xmlstarlet sel -t -v "/RunInfo/Run/Reads/Read/@NumCycles" RunInfo.xml | tail -n 1)
+		echo ${read2Length} > r2Length.txt
+
 		readStructure=${read1Length}T"~{barcodeStructure}"${read2Length}T
 		echo ${readStructure} > readStructure.txt
 
@@ -621,6 +631,49 @@ task ExtractBarcodes {
 			-NUM_PROCESSORS 0 \
 			-COMPRESSION_LEVEL 1 \
 			-GZIP true
+		
+		# collect basecall metrics
+		java -Xmx~{javaMemory}m -jar /software/picard.jar CollectIlluminaBasecallingMetrics \
+			-BASECALLS_DIR "Data/Intensities/BaseCalls" \
+			-BARCODES_DIR . \
+			-TMP_DIR . \
+			-INPUT "~{barcodeParamsFile}" \
+			-OUTPUT "~{basecallMetricsFile}" \
+			-READ_STRUCTURE "${readStructure}" \
+			-LANE "~{lane}"
+
+		# parse read stats and basecall metrics
+		python3 <<CODE
+		import csv, re
+		with open('~{readStatsFile}', 'w') as out:
+		reads = list(map(int, re.findall('(\d+)T', '~{readStructure}')))
+		reads_count = len(reads)
+		writer = csv.writer(out, delimiter='\t', lineterminator='\n')
+		writer.writerow([reads_count, float(sum(reads)) / reads_count])
+		with  open('~{basecallMetricsFile}', 'r') as input, \
+			open('~{parsedMetricsFile}', 'w') as output:
+		fieldnames = (
+			'name', 'percentPfClusters', 'meanClustersPerTile',
+			'pfBases', 'pfFragments',
+		)
+		writer = csv.DictWriter(output,
+			fieldnames=fieldnames, delimiter='\t', lineterminator='\n'
+		)
+		writer.writeheader()
+		tsv = (row for row in input if not re.match('^(#.*|)$', row))
+		for row in csv.DictReader(tsv, delimiter='\t'):
+			name = row['MOLECULAR_BARCODE_NAME']
+			if name:
+			writer.writerow({
+				'name': name,
+				'percentPfClusters': round(
+				float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
+				),
+				'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
+				'pfBases': row['PF_BASES'],
+				'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
+			})
+		CODE
 	>>>
 
 	runtime {
@@ -631,8 +684,12 @@ task ExtractBarcodes {
 	}
 
 	output {
+		Int r1Length = read_int("r1Length.txt")
+		Int r2Length = read_int("r2Length.txt") 
 		String readStructure = read_string("readStructure.txt")
 		File barcodeMetrics = barcodeMetricsFile
+		File basecallMetrics = basecallMetricsFile
+    	File parsedMetrics = parsedMetricsFile
 		File barcodes = write_lines(glob("*_barcode.txt.gz"))
 		File monitorLog = monitorLog
 	}
