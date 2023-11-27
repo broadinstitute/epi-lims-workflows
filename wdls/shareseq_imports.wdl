@@ -645,11 +645,6 @@ task ExtractBarcodes {
 		# parse read stats and basecall metrics
 		python3 <<CODE
 		import csv, re
-		# with open('~{readStatsFile}', 'w') as out:
-		# 	reads = list(map(int, re.findall('(\d+)T', '~{readStructure}')))
-		# 	reads_count = len(reads)
-		# 	writer = csv.writer(out, delimiter='\t', lineterminator='\n')
-		# 	writer.writerow([reads_count, float(sum(reads)) / reads_count])
 		with  open('~{basecallMetricsFile}', 'r') as input, \
 			open('~{parsedMetricsFile}', 'w') as output:
 			fieldnames = (
