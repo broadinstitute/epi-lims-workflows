@@ -589,13 +589,13 @@ task ExtractBarcodes {
 
 	Int javaMemory = ceil((memory * 0.9) * 1000)
 
-    String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+	String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
 	
 	String monitorLog = "extract_barcodes_monitor.log"
 
 	command <<<
 		set -e
-		
+
 		bash $(which monitor_script.sh) > ~{monitorLog} 2>&1 &
 
 		~{laneUntarBcl}
@@ -612,7 +612,7 @@ task ExtractBarcodes {
 		readStructure=${read1Length}T"~{barcodeStructure}"${read2Length}T
 		echo ${readStructure} > readStructure.txt
 
-		printf "barcode_name\tbarcode_sequence1" | tee "~{barcodeParamsFile}"
+		printf "barcode_name\tbarcode_sequence_1" | tee "~{barcodeParamsFile}"
 		while read -r params; do	
 			name=$(echo "${params}" | cut -d$'\t' -f1)
 			barcodes=$(echo "${params}" | cut -d$'\t' -f2-)
@@ -631,7 +631,7 @@ task ExtractBarcodes {
 			-NUM_PROCESSORS 0 \
 			-COMPRESSION_LEVEL 1 \
 			-GZIP true
-		
+
 		# collect basecall metrics
 		java -Xmx~{javaMemory}m -jar /software/picard.jar CollectIlluminaBasecallingMetrics \
 			-BASECALLS_DIR "Data/Intensities/BaseCalls" \
@@ -645,34 +645,29 @@ task ExtractBarcodes {
 		# parse read stats and basecall metrics
 		python3 <<CODE
 		import csv, re
-		with open('~{readStatsFile}', 'w') as out:
-		reads = list(map(int, re.findall('(\d+)T', '~{readStructure}')))
-		reads_count = len(reads)
-		writer = csv.writer(out, delimiter='\t', lineterminator='\n')
-		writer.writerow([reads_count, float(sum(reads)) / reads_count])
 		with  open('~{basecallMetricsFile}', 'r') as input, \
 			open('~{parsedMetricsFile}', 'w') as output:
-		fieldnames = (
-			'name', 'percentPfClusters', 'meanClustersPerTile',
-			'pfBases', 'pfFragments',
-		)
-		writer = csv.DictWriter(output,
-			fieldnames=fieldnames, delimiter='\t', lineterminator='\n'
-		)
-		writer.writeheader()
-		tsv = (row for row in input if not re.match('^(#.*|)$', row))
-		for row in csv.DictReader(tsv, delimiter='\t'):
-			name = row['MOLECULAR_BARCODE_NAME']
-			if name:
-			writer.writerow({
-				'name': name,
-				'percentPfClusters': round(
-				float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
-				),
-				'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
-				'pfBases': row['PF_BASES'],
-				'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
-			})
+			fieldnames = (
+				'name', 'percentPfClusters', 'meanClustersPerTile',
+				'pfBases', 'pfFragments',
+			)
+			writer = csv.DictWriter(output,
+				fieldnames=fieldnames, delimiter='\t', lineterminator='\n'
+			)
+			writer.writeheader()
+			tsv = (row for row in input if not re.match('^(#.*|)$', row))
+			for row in csv.DictReader(tsv, delimiter='\t'):
+				name = row['MOLECULAR_BARCODE_NAME']
+				if name:
+				writer.writerow({
+					'name': name,
+					'percentPfClusters': round(
+					float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
+					),
+					'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
+					'pfBases': row['PF_BASES'],
+					'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
+				})
 		CODE
 	>>>
 
@@ -689,7 +684,7 @@ task ExtractBarcodes {
 		String readStructure = read_string("readStructure.txt")
 		File barcodeMetrics = barcodeMetricsFile
 		File basecallMetrics = basecallMetricsFile
-    	File parsedMetrics = parsedMetricsFile
+		File parsedMetrics = parsedMetricsFile
 		File barcodes = write_lines(glob("*_barcode.txt.gz"))
 		File monitorLog = monitorLog
 	}
