@@ -645,34 +645,34 @@ task ExtractBarcodes {
 		# parse read stats and basecall metrics
 		python3 <<CODE
 		import csv, re
-		with open('~{readStatsFile}', 'w') as out:
-		reads = list(map(int, re.findall('(\d+)T', '~{readStructure}')))
-		reads_count = len(reads)
-		writer = csv.writer(out, delimiter='\t', lineterminator='\n')
-		writer.writerow([reads_count, float(sum(reads)) / reads_count])
+		# with open('~{readStatsFile}', 'w') as out:
+		# 	reads = list(map(int, re.findall('(\d+)T', '~{readStructure}')))
+		# 	reads_count = len(reads)
+		# 	writer = csv.writer(out, delimiter='\t', lineterminator='\n')
+		# 	writer.writerow([reads_count, float(sum(reads)) / reads_count])
 		with  open('~{basecallMetricsFile}', 'r') as input, \
-			open('~{parsedMetricsFile}', 'w') as output:
-		fieldnames = (
-			'name', 'percentPfClusters', 'meanClustersPerTile',
-			'pfBases', 'pfFragments',
-		)
-		writer = csv.DictWriter(output,
-			fieldnames=fieldnames, delimiter='\t', lineterminator='\n'
-		)
-		writer.writeheader()
-		tsv = (row for row in input if not re.match('^(#.*|)$', row))
-		for row in csv.DictReader(tsv, delimiter='\t'):
-			name = row['MOLECULAR_BARCODE_NAME']
-			if name:
-			writer.writerow({
-				'name': name,
-				'percentPfClusters': round(
-				float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
-				),
-				'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
-				'pfBases': row['PF_BASES'],
-				'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
-			})
+			  open('~{parsedMetricsFile}', 'w') as output:
+			fieldnames = (
+				'name', 'percentPfClusters', 'meanClustersPerTile',
+				'pfBases', 'pfFragments',
+			)
+			writer = csv.DictWriter(output,
+				fieldnames=fieldnames, delimiter='\t', lineterminator='\n'
+			)
+			writer.writeheader()
+			tsv = (row for row in input if not re.match('^(#.*|)$', row))
+			for row in csv.DictReader(tsv, delimiter='\t'):
+				name = row['MOLECULAR_BARCODE_NAME']
+				if name:
+				writer.writerow({
+					'name': name,
+					'percentPfClusters': round(
+					float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
+					),
+					'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
+					'pfBases': row['PF_BASES'],
+					'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
+				})
 		CODE
 	>>>
 
