@@ -689,7 +689,7 @@ task ExtractBarcodes {
 		String readStructure = read_string("readStructure.txt")
 		File barcodeMetrics = barcodeMetricsFile
 		File basecallMetrics = basecallMetricsFile
-    	File parsedMetrics = parsedMetricsFile
+		File parsedMetrics = parsedMetricsFile
 		File barcodes = write_lines(glob("*_barcode.txt.gz"))
 		File monitorLog = monitorLog
 	}
