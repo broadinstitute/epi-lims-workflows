@@ -589,13 +589,13 @@ task ExtractBarcodes {
 
 	Int javaMemory = ceil((memory * 0.9) * 1000)
 
-    String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
+	String laneUntarBcl = untarBcl + ' RunInfo.xml RTAComplete.txt RunParameters.xml Data/Intensities/s.locs Data/Intensities/BaseCalls/L00~{lane}  && rm "~{basename(bcl)}"'
 	
 	String monitorLog = "extract_barcodes_monitor.log"
 
 	command <<<
 		set -e
-		
+
 		bash $(which monitor_script.sh) > ~{monitorLog} 2>&1 &
 
 		~{laneUntarBcl}
@@ -631,7 +631,7 @@ task ExtractBarcodes {
 			-NUM_PROCESSORS 0 \
 			-COMPRESSION_LEVEL 1 \
 			-GZIP true
-		
+
 		# collect basecall metrics
 		java -Xmx~{javaMemory}m -jar /software/picard.jar CollectIlluminaBasecallingMetrics \
 			-BASECALLS_DIR "Data/Intensities/BaseCalls" \
@@ -651,7 +651,7 @@ task ExtractBarcodes {
 		# 	writer = csv.writer(out, delimiter='\t', lineterminator='\n')
 		# 	writer.writerow([reads_count, float(sum(reads)) / reads_count])
 		with  open('~{basecallMetricsFile}', 'r') as input, \
-			  open('~{parsedMetricsFile}', 'w') as output:
+			open('~{parsedMetricsFile}', 'w') as output:
 			fieldnames = (
 				'name', 'percentPfClusters', 'meanClustersPerTile',
 				'pfBases', 'pfFragments',
