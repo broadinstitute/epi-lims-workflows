@@ -612,7 +612,7 @@ task ExtractBarcodes {
 		readStructure=${read1Length}T"~{barcodeStructure}"${read2Length}T
 		echo ${readStructure} > readStructure.txt
 
-		printf "barcode_name\tbarcode_sequence1" | tee "~{barcodeParamsFile}"
+		printf "barcode_name\tbarcode_sequence_1" | tee "~{barcodeParamsFile}"
 		while read -r params; do	
 			name=$(echo "${params}" | cut -d$'\t' -f1)
 			barcodes=$(echo "${params}" | cut -d$'\t' -f2-)
