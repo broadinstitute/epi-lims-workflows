@@ -166,7 +166,11 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
                 "LIMS_Lane": lims_lane,
                 "Reads 1 Filename URI": library_output["read1"],
                 "Reads 2 Filename URI": library_output["read2"] or '',
-                "SS-CoPA": library_output["name"]
+                "SS-CoPA": library_output["name"],
+                "% PF Clusters (BC)": library_output["percentPfClusters"],
+                "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
+                "PF Bases (BC)": library_output["pfBases"],
+                "PF Fragments (BC)": library_output["pfFragments"]
             })
             if len(buffer) == 20:
                 lane_subsets.append(buffer)

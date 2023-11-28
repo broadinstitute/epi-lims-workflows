@@ -69,10 +69,10 @@ struct Fastq {
 
 struct LibraryOutput {
 	String name
-	# Float percentPfClusters
-	# # Int meanClustersPerTile
-	# Float pfBases
-	# Float pfFragments
+	Float percentPfClusters
+	Int meanClustersPerTile
+	Float pfBases
+	Float pfFragments
 	String read1
 	String read2
 }
@@ -298,6 +298,7 @@ workflow SSBclToFastq {
 						R1barcodeSet = copa.round1,
 						R2barcodes = copa.round2,
 						R3barcodes = copa.round3,
+						parsedMetrics = ExtractBarcodes.parsedMetrics,
 						dockerImage = dockerImage
 				}
 
@@ -312,7 +313,11 @@ workflow SSBclToFastq {
 				LibraryOutput libraryOutput = object {
 					name: copa.name,
 					read1: Transfer.read1,
-					read2: Transfer.read2
+					read2: Transfer.read2,
+					percentPfClusters: BamToRawFastq.percentPfClusters,
+					meanClustersPerTile: BamToRawFastq.meanClustersPerTile,
+					pfBases: BamToRawFastq.pfBases,
+					pfFragments: BamToRawFastq.pfFragments
 				}
 
 				Fastq transferred = object {
@@ -645,6 +650,8 @@ task ExtractBarcodes {
 		# parse read stats and basecall metrics
 		python3 <<CODE
 		import csv, re
+		reads = list(map(int, re.findall('(\d+)T', '50T99M8B50T')))
+		reads_count = len(reads)
 		with  open('~{basecallMetricsFile}', 'r') as input, \
 			open('~{parsedMetricsFile}', 'w') as output:
 			fieldnames = (
@@ -659,15 +666,15 @@ task ExtractBarcodes {
 			for row in csv.DictReader(tsv, delimiter='\t'):
 				name = row['MOLECULAR_BARCODE_NAME']
 				if name:
-				writer.writerow({
-					'name': name,
-					'percentPfClusters': round(
-					float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
-					),
-					'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
-					'pfBases': row['PF_BASES'],
-					'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
-				})
+					writer.writerow({
+						'name': name,
+						'percentPfClusters': round(
+							float(row['PF_CLUSTERS']) / float(row['TOTAL_CLUSTERS']) * 100, 2
+						),
+						'meanClustersPerTile': row['MEAN_CLUSTERS_PER_TILE'],
+						'pfBases': row['PF_BASES'],
+						'pfFragments': round(float(row['PF_READS']) / reads_count, 2),
+					})
 		CODE
 	>>>
 
@@ -867,6 +874,7 @@ task BamToRawFastq {
 		File R1barcodeSet
 		File? R2barcodes
 		File? R3barcodes
+		File parsedMetrics
 		String dockerImage
 		Float? diskFactor = 5
 		Float? memory = 8
@@ -894,6 +902,13 @@ task BamToRawFastq {
 			~{if defined(R3barcodes) then "--r3_barcode_file ~{R3barcodes}" else ""}
 
 		gzip *.fastq
+
+		qcs=($(grep "~{library}" "~{parsedMetrics}" | cut -f 2-))
+		echo ${qcs[0]} > "percentPfClusters.txt"
+		echo ${qcs[1]} > "meanClustersPerTile.txt"
+		echo ${qcs[2]} > "pfBases.txt"
+		echo ${qcs[3]} > "pfFragments.txt"
+
 	>>>
 
 	output {
@@ -908,6 +923,10 @@ task BamToRawFastq {
 			read2: glob("*R2.fastq.gz"),
 			whitelist: glob("*whitelist.txt")
 		}
+		Float percentPfClusters = read_float("percentPfClusters.txt")
+		Int meanClustersPerTile = read_int("meanClustersPerTile.txt") 
+		Float pfBases = read_float("pfBases.txt")
+		Float pfFragments = read_float("pfFragments.txt")
 		File R1barcodeQC = "~{prefix}_R1_barcode_qc.txt"
 		File monitorLog = monitorLog
 	}
