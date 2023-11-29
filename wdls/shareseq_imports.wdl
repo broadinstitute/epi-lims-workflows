@@ -903,7 +903,7 @@ task BamToRawFastq {
 
 		gzip *.fastq
 
-		qcs=($(grep "~{library}" "~{parsedMetrics}"" | cut -f 2-))
+		qcs=($(grep "~{library}" "~{parsedMetrics}" | cut -f 2-))
 		echo ${qcs[0]} > "percentPfClusters.txt"
 		echo ${qcs[1]} > "meanClustersPerTile.txt"
 		echo ${qcs[2]} > "pfBases.txt"
