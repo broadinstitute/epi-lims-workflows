@@ -172,7 +172,7 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
                 "PF Bases (BC)": library_output["pfBases"],
                 "PF Fragments (BC)": library_output["pfFragments"]
             })
-            if len(buffer) == 20:
+            if len(buffer) == 10:
                 lane_subsets.append(buffer)
                 buffer = []  # Start a new buffer array
             
@@ -211,6 +211,8 @@ def import_shareseq_import_outputs(project, username, password, outputs):
     context = json.loads(outputs["context"])
     print(context)
     
+    print(update_ss_pa(project, username, password, context, outputs)) 
+
     print("Importing LIMS_Lanes")
     lims_lanes = import_lanes(
         project, username, password, context, outputs
