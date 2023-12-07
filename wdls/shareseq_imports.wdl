@@ -194,8 +194,8 @@ workflow SSBclToFastq {
 		Int lengthLanes = length(lanes)#select_first([lanes, GetLanes.lanes]))
 		# memory estimate for BasecallsToBam depends on estimated size of one lane of data
 		Float bclSize = size(bcl, 'G')
-		Float memory = ceil(1.4 * bclSize + 147) / lengthLanes
-		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / lengthLanes # an unusual increase from 0.25 x for black swan
+		Float memory = ceil(1.4 * bclSize + 147) / 4
+		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / 4 # an unusual increase from 0.25 x for black swan
 		
 		scatter(i in range(length(p.pkrIds))){
 			# TODO: migrate reverse complementing to the after script
@@ -252,7 +252,7 @@ workflow SSBclToFastq {
 					barcodeStructure = barcodeStructure,
 					lane = lane,
 					dockerImage = dockerImage,
-					memory = memory2
+					memory = if memory2 > 624 then 624 else memory2
 			}
 
 			call BasecallsToBams {
@@ -265,7 +265,7 @@ workflow SSBclToFastq {
 					lane = lane,
 					sequencingCenter = sequencingCenter,
 					dockerImage = dockerImage,
-					memory = memory
+					memory = if memory > 624 then 624 else memory
 			}
 
 			scatter(bam in BasecallsToBams.bams){
