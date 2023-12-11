@@ -884,7 +884,7 @@ task BamToRawFastq {
 	String prefix = basename(bam, ".bam")
 	
 	Float bamSize = size(bam, 'G')
-	Int diskSize = ceil(diskFactor * bamSize)
+	Int diskSize = ceil(diskFactor * bamSize * 1.2)
 	String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
 	command <<<
