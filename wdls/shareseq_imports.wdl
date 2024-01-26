@@ -157,7 +157,7 @@ workflow SSBclToFastq {
 
 	String barcodeStructure = "99M8B"
 	String sequencingCenter = "BI"
-	String tar_flags = if zipped then 'xzf' else 'xf'
+	String tar_flags = if zipped then 'ixzf' else 'ixf'
 	String untarBcl =
 		'gsutil -m -o GSUtil:parallel_thread_count=1' +
 		' -o GSUtil:sliced_object_download_max_components=8' +
@@ -554,7 +554,7 @@ task GetLanes {
 	}
 
 	runtime {
-		docker: "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+		docker: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
 		disks: "local-disk ~{diskSize} ~{diskType}"
 		# memory: memory + 'G'
 		# cpu: 14
