@@ -84,7 +84,9 @@ req = [{
     :workflow => 'share-seq-proto',
     :subj_name => subjects.map{ |s| s.name }.join(','),
     :subj_id => subjects.map{ |s| s.id }.join(','),
-    :lane_subsets => [
+    :terra_project => params['text_attribute_for_tasks'],
+    :workspace_name => params['text_attribute_for_tasks2'],
+    :lane_subsets => {
         pkrIds: pipeline_inputs[:pkr_names],
         libraries: pipeline_inputs[:libraries],
         ssCopas: pipeline_inputs[:copa_names],
@@ -93,7 +95,7 @@ req = [{
         round1Subsets: pipeline_inputs[:round1_subsets],
         reads1: pipeline_inputs[:reads1],
         reads2: pipeline_inputs[:reads2]
-    ],
+    },
 }]
 
 show_message("#{req.to_json}")
