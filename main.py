@@ -149,8 +149,8 @@ def format_shareseq_proto_inputs(project, request):
     return dict_to_bytes_io(
         {
             "TerraUpsert.tsv": 'gs://{}/{}'.format(bucket_name, blob_name),
-            "TerraUpsert.terra_project": "broad-epigenomics-prod",
-            "TerraUpsert.workspace_name": "upload_testing",
+            "TerraUpsert.terra_project": request.get("terra_project"),
+            "TerraUpsert.workspace_name": request.get("workspace_name"),
         }
 	)
 	# Terminate the rest of the cloud function execution
