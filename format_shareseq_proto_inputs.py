@@ -47,5 +47,12 @@ def format_shareseq_proto_inputs(project, request):
     blob = bucket.blob(blob_name)
     blob.upload_from_filename("{}/run.tsv".format(dir))
     
+    return dict_to_bytes_io(
+        {
+            "TerraUpsert.tsv": blob_name,
+            "TerraUpsert.terra_project": "broad-epigenomics-prod",
+            "TerraUpsert.workspace_name": "upload_testing",
+        }
+	)
 	# Terminate the rest of the cloud function execution
-    sys.exit()
+    # sys.exit()
