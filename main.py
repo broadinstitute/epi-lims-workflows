@@ -7,7 +7,7 @@ from google.cloud import kms
 from google.cloud import storage
 import google.auth.transport.requests
 from google.oauth2 import service_account
-
+from format_shareseq_proto_inputs import format_shareseq_proto_inputs
 import imports
 
 # from transfer import submit_bcl_transfer
@@ -136,6 +136,7 @@ formatters = {
     "import": format_import_inputs,
     "chipseq": format_chipseq_inputs,
     "share-seq-import": format_shareseq_import_inputs,
+    "share-seq-proto": format_shareseq_proto_inputs,
 }
 
 workflow_parsers = {
@@ -143,6 +144,7 @@ workflow_parsers = {
     "import": imports.import_bcl_outputs,
     "chipseq": imports.import_chipseq_outputs,
     "share-seq-import": imports.import_shareseq_import_outputs,
+    "share-seq-proto": imports.import_shareseq_proto_outputs,
 }
 
 

@@ -223,6 +223,9 @@ def import_shareseq_import_outputs(project, username, password, outputs):
         project, username, password, context, outputs, lims_lanes
     )
 
+def import_shareseq_proto_outputs(project, username, password, outputs):
+    # Do nothing
+    pass
 
 def import_chipseq_outputs(project, username, password, outputs):
     # Parse Cromwell job outputs
