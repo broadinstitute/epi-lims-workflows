@@ -1,5 +1,8 @@
 import io
 import os
+import csv
+from datetime import datetime
+import subprocess
 import json
 import requests
 import functions_framework
@@ -7,7 +10,7 @@ from google.cloud import kms
 from google.cloud import storage
 import google.auth.transport.requests
 from google.oauth2 import service_account
-from format_shareseq_proto_inputs import format_shareseq_proto_inputs
+# from format_shareseq_proto_inputs import format_shareseq_proto_inputs
 import imports
 
 # from transfer import submit_bcl_transfer
@@ -104,6 +107,54 @@ def format_shareseq_import_inputs(project, request):
         }
     )
 
+def format_shareseq_proto_inputs(project, request):
+    dir = '/tmp'
+    tsv_file = '{}/output.tsv'.format(dir)
+    
+    # Open the file in write mode
+    with open(tsv_file, 'w', newline='') as file:
+        # Create a TSV writer
+        writer = csv.writer(file, delimiter='\t')
+        
+        data = request.get('lane_subsets')
+        
+        # Create path to whitelists
+        bucket = 'gs://broad-epi-ss-lane-subsets/'
+        suffix = '_whitelist.txt'
+        whitelists = ["{}{}{}".format(bucket, s, suffix) for s in data['ssCopas']]
+        
+        n_rows = len(data['libraries'])
+        
+        # Header
+        writer.writerow(['Library','PKR','R1_subset','Type','Whitelist','Raw_FASTQ_R1','Raw_FASTQ_R2','Genome','Notes'])
+        
+        for row_values in zip(data['libraries'], data['pkrIds'], data['round1Subsets'], data['sampleTypes'], whitelists, data['reads1'], data['reads2'], data['genomes'], ['']*n_rows):
+            writer.writerow(row_values)
+    
+    script_path = 'write_terra_tables.py'
+    
+    time = datetime.now()
+    table_name = time.strftime("%y-%m-%d_%H%M_proto")
+    subprocess.run(['python', script_path, '--input', tsv_file, '--name', table_name, '--dir', dir])
+    
+    # Upload the CSV file to Google Cloud Storage
+    storage_client = storage.Client()
+    bucket_name = "broad-epi-cromwell"
+    blob_name = "{}_run.tsv".format(table_name)
+    
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    blob.upload_from_filename("{}/run.tsv".format(dir))
+    
+    return dict_to_bytes_io(
+        {
+            "TerraUpsert.tsv": 'gs://{}/{}'.format(bucket_name, blob_name),
+            "TerraUpsert.terra_project": "broad-epigenomics-prod",
+            "TerraUpsert.workspace_name": "upload_testing",
+        }
+	)
+	# Terminate the rest of the cloud function execution
+    # sys.exit()
 
 def format_chipseq_inputs(project, request):
     genome = request.get("genome_name")
@@ -129,6 +180,7 @@ wdls = {
     "import": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/imports.wdl",
     "chipseq": "https://raw.githubusercontent.com/broadinstitute/epi-lims-wdl-test/main/wdls/chipseq.wdl",
     "share-seq-import": "https://raw.githubusercontent.com/broadinstitute/epi-lims-workflows/release/wdls/shareseq_imports.wdl",
+    "share-seq-proto": "https://raw.githubusercontent.com/broadinstitute/epi-lims-workflows/release/wdls/terra_upsert.wdl",
 }
 
 formatters = {
