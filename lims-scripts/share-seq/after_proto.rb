@@ -84,6 +84,7 @@ req = [{
     :workflow => 'share-seq-proto',
     :subj_name => subjects.map{ |s| s.name }.join(','),
     :subj_id => subjects.map{ |s| s.id }.join(','),
+    :table_name => params['HiSeq Folder Name'],
     :terra_project => params['text_attribute_for_tasks'],
     :workspace_name => params['text_attribute_for_tasks2'],
     :lane_subsets => {
@@ -98,9 +99,9 @@ req = [{
     },
 }]
 
-show_message("#{req.to_json}")
+# show_message("#{req.to_json}")
 
-# Rails.logger.info("#{req.to_json}")
+Rails.logger.info("#{req.to_json}")
 
 # Launch jobs
-# submit_jobs(req)
+submit_jobs(req)

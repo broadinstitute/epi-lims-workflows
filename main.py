@@ -133,8 +133,9 @@ def format_shareseq_proto_inputs(project, request):
     
     script_path = 'write_terra_tables.py'
     
-    time = datetime.now()
-    table_name = time.strftime("%y-%m-%d_%H%M_proto")
+    # time = datetime.now()
+    # table_name = time.strftime("%y-%m-%d_%H%M_proto")
+    table_name = request.get('table_name')
     subprocess.run(['python', script_path, '--input', tsv_file, '--name', table_name, '--dir', dir])
     
     # Upload the CSV file to Google Cloud Storage
