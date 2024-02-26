@@ -11,6 +11,11 @@ params[:custom_fields] = UIUtils.encode_fields([
         items: [
             field_container([
                 udf(
+                    'checkbox_for_tasks',
+                    nil,
+                    fieldLabel: 'Group by PKR only?',
+                ),
+                udf(
                     'HiSeq Folder Name',
                     nil,
                     fieldLabel: 'Terra Table Name',

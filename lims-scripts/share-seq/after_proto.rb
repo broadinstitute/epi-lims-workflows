@@ -11,6 +11,8 @@ def get_genome(species)
             "hg38"
         when /mouse/
             "mm10"
+        when /macaque/
+            "rheMac10"
         else
             raise "Error: Unknown species common name"
         end
@@ -87,6 +89,7 @@ req = [{
     :table_name => params['HiSeq Folder Name'],
     :terra_project => params['text_attribute_for_tasks'],
     :workspace_name => params['text_attribute_for_tasks2'],
+    :group => params['checkbox_for_tasks'].nil? ? false : true,
     :lane_subsets => {
         pkrIds: pipeline_inputs[:pkr_names],
         libraries: pipeline_inputs[:libraries],
