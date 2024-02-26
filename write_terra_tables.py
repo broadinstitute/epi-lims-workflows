@@ -30,8 +30,8 @@ class MainTableRow:
 def make_sub_key(lib, r1, bcl):
 	return lib + "-" + r1 + "-" + bcl
 
-def make_main_key(pkr,r1):
-	key = pkr + "-" + r1
+def make_main_key(pkr, r1, group):
+	key = pkr if group else pkr + "-" + r1 
 	return key.replace(' ', '-')
 
 def get_subset_names(fqs):
@@ -64,6 +64,7 @@ def update_main_dict(key, pkr, r1, whitelist, genome, rna_lib = None, rna_fq1 = 
 		if key not in main:
 			main[key] = MainTableRow(pkr, [r1], whitelist, genome, atac_lib = [atac_lib], atac_fq1 = atac_fq1, atac_fq2 = atac_fq2)
 		else:
+			main[key].r1.append(r1)
 			main[key].atac_lib.append(atac_lib)
 			main[key].atac_fq1 += atac_fq1
 			main[key].atac_fq2 += atac_fq2
@@ -71,6 +72,7 @@ def update_main_dict(key, pkr, r1, whitelist, genome, rna_lib = None, rna_fq1 = 
 		if key not in main:
 			main[key] = MainTableRow(pkr, [r1], whitelist, genome, rna_lib = [rna_lib], rna_fq1 = rna_fq1, rna_fq2 = rna_fq2)
 		else:
+			main[key].r1.append(r1)
 			main[key].rna_lib.append(rna_lib)
 			main[key].rna_fq1 += rna_fq1
 			main[key].rna_fq2 += rna_fq2
@@ -109,6 +111,7 @@ parser.add_argument('-i', '--input', type=str, required=True)
 parser.add_argument('-n', '--name', type=str, required=True)
 parser.add_argument('-m', '--meta', type=str, required=False)
 parser.add_argument('-d', '--dir', type=str, default='.')
+parser.add_argument('--group', action='store_true')
 args = parser.parse_args()
 
 atac = dict()
@@ -145,7 +148,7 @@ with open('{}/atac.tsv'.format(args.dir), 'wt') as outfile:
 		fq2 = list(atac[key].fq2)
 		genome = atac[key].genome
 		tsv_writer.writerow([key, args.name, pkr, lib, r1, whitelist, '["' + '","'.join(fq1) + '"]', '["' + '","'.join(fq2) + '"]', genome, atac[key].notes])
-		main_key = make_main_key(pkr, r1)
+		main_key = make_main_key(pkr, r1, args.group)
 		update_main_dict(main_key, pkr, r1, whitelist, genome, atac_lib=lib, atac_fq1=fq1, atac_fq2=fq2)
 
 with open('{}/rna.tsv'.format(args.dir), 'wt') as outfile:
@@ -160,7 +163,7 @@ with open('{}/rna.tsv'.format(args.dir), 'wt') as outfile:
 		fq2 = list(rna[key].fq2)
 		genome = rna[key].genome
 		tsv_writer.writerow([key, args.name, pkr, lib, r1, whitelist, '["' + '","'.join(fq1) + '"]', '["' + '","'.join(fq2) + '"]', genome, rna[key].notes])
-		main_key = make_main_key(pkr, r1)
+		main_key = make_main_key(pkr, r1, args.group)
 		update_main_dict(main_key, pkr, r1, whitelist, genome, rna_lib=lib, rna_fq1=fq1, rna_fq2=fq2)
 
 with open('{}/rna_no.tsv'.format(args.dir), 'wt') as outfile:
@@ -198,7 +201,7 @@ with open('{}/run.tsv'.format(args.dir), 'wt') as outfile:
 		print(key)
 		pkr = main[key].pkr
 		genome = main[key].genome
-		r1 = '["' + '","'.join(main[key].r1) + '"]'
+		r1 = '["' + '","'.join(set(main[key].r1)) + '"]'
 		whitelist = main[key].whitelist
 		atac_lib = '["' + '","'.join(set(main[key].atac_lib)) + '"]'
 		atac_fq1 = '["' + '","'.join(main[key].atac_fq1) + '"]'

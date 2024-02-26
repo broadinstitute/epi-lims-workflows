@@ -27,6 +27,8 @@ def get_genome(species)
             "hg38"
         when /mouse/
             "mm10"
+        when /macaque/
+            "rheMac10"
         else
             raise "Error: Unknown species common name"
         end
@@ -165,5 +167,7 @@ req = [{
     ],
 }]
 Rails.logger.info("#{req.to_json}")
+
+#show_message("#{req.to_json}")
 
 submit_jobs(req)
