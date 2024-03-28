@@ -102,7 +102,7 @@ def format_shareseq_import_inputs(project, request):
             # "SSBclToFastq.readStructure": request.get("read_structure"),
             # "SSBclToFastq.sequencingCenter": request.get("sequencing_center"),
             "SSBclToFastq.pipelines": request.get("pipelines"),
-            "SSBclToFastq.dockerImage": "mknudson/preprocess:demux-qc-fix",
+            "SSBclToFastq.dockerImage": "mknudson/task_preprocess:update-correction",
             "SSBclToFastq.outputDir": "gs://{0}-ss-lane-subsets/".format(project),
         }
     )
