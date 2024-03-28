@@ -183,7 +183,7 @@ with open('{}/rna_no.tsv'.format(args.dir), 'wt') as outfile:
 for key in list(main.keys()):
 	pkr = main[key].pkr
 	whitelist = main[key].whitelist
-	r1 = list(main[key].r1)
+	r1 = list(set(main[key].r1))
 	if len(r1) == 1:
 		continue
 	rna_lib = list(main[key].rna_lib)
