@@ -210,6 +210,7 @@ LIMS_PASSWORD=$(echo $LIMS_SECRET | cut -d',' -f2)
 gcloud functions deploy on-workflow-done \
     --gen2 \
     --runtime=python310 \
+    --timeout=540 \
     --region=$REGION \
     --source=. \
     --entry-point=on_workflow_done \
