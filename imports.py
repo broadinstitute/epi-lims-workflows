@@ -170,7 +170,8 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
                 "% PF Clusters (BC)": library_output["percentPfClusters"],
                 "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
                 "PF Bases (BC)": library_output["pfBases"],
-                "PF Fragments (BC)": library_output["pfFragments"]
+                "PF Fragments (BC)": library_output["pfFragments"],
+                "DEMUX Version": outputs["pipelineVersion"]
             })
             if len(buffer) == 10:
                 lane_subsets.append(buffer)
@@ -180,7 +181,7 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
             lane_subsets.append(buffer)
         
         for group in lane_subsets:
-            import_subjects(project, username, password, "SS-LS", group)
+            print(import_subjects(project, username, password, "SS-LS", group))
         
     return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
 

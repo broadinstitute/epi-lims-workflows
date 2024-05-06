@@ -86,6 +86,7 @@ struct LaneOutput {
 
 struct PipelineOutputs {
 	String workflowType
+	String pipelineVersion
 	Array[LaneOutput] laneOutputs
 	# Float meanReadLength
 	# Float mPfFragmentsPerLane
@@ -153,6 +154,7 @@ workflow SSBclToFastq {
 
 		# URI of the Docker image with analysis tools
 		String dockerImage = "us.gcr.io/buenrostro-share-seq/share_task_preprocess"
+		String pipelineVersion = "KD-v0.2"
 	}
 
 	String barcodeStructure = "99M8B"
@@ -299,6 +301,7 @@ workflow SSBclToFastq {
 						R2barcodes = copa.round2,
 						R3barcodes = copa.round3,
 						parsedMetrics = ExtractBarcodes.parsedMetrics,
+						numBases = ExtractBarcodes.r1Length + ExtractBarcodes.r2Length,
 						dockerImage = dockerImage
 				}
 
@@ -346,6 +349,7 @@ workflow SSBclToFastq {
 
 		PipelineOutputs outputs = object {
 			workflowType: 'share-seq-import',
+			pipelineVersion: pipelineVersion,
 			laneOutputs: laneOutput,
 			r1Length: ExtractBarcodes.r1Length[0],
 			r2Length: ExtractBarcodes.r2Length[0],
@@ -875,6 +879,7 @@ task BamToRawFastq {
 		File? R2barcodes
 		File? R3barcodes
 		File parsedMetrics
+		Int numBases
 		String dockerImage
 		Float? diskFactor = 5
 		Float? memory = 8
@@ -906,8 +911,10 @@ task BamToRawFastq {
 		qcs=($(grep "~{library}" "~{parsedMetrics}" | cut -f 2-))
 		echo ${qcs[0]} > "percentPfClusters.txt"
 		echo ${qcs[1]} > "meanClustersPerTile.txt"
-		echo ${qcs[2]} > "pfBases.txt"
-		echo ${qcs[3]} > "pfFragments.txt"
+		awk -F'\t' '{ sum += $2 + $3 } END { print sum * ~{numBases}  }' "~{prefix}_R1_barcode_qc.txt" > "pfBases.txt"
+		awk -F'\t' '{ sum += $2 + $3 } END { print sum }' "~{prefix}_R1_barcode_qc.txt" > "pfFragments.txt"
+		# echo ${qcs[2]} > "pfBases.txt"
+		# echo ${qcs[3]} > "pfFragments.txt"
 
 	>>>
 
