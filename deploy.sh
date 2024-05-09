@@ -75,7 +75,10 @@ CLOUDBUILD_TOKEN=$(curl -sH "Authorization: Bearer ${TOKEN}" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 
 # Allow SA to start workflows in the dev collection
-curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer" -H "Content-Type: application/json" -d "{\"memberEmails\": [\"${CROMWELL_SA}\"], \"roles\": [\"writer\"], \"actions\": []}"
+curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" \
+  -X PUT "https://sam.dsde-prod.broadinstitute.org/api/resources/v1/workflow-collection/${COLLECTION}/policies/writer/memberEmails/${CROMWELL_SA}" \
+  -H "Content-Type: application/json" \
+  -d "{}"
 
 # TODO add comment for this
 # TODO use google account ID var and replace cloudbuild SA with var
