@@ -69,7 +69,7 @@ def format_pipeline_inputs(copas)
         atac = lib.get_value('MO scATAC Lib')
         mo_lib = atac || lib.get_value('MO scRNA Lib')
         lib_barcode = mo_lib.get_value('Molecular Barcode')
-        seq = lib_barcode.get_value('Molecular Barcode Sequence')
+        seq = reverse_complement(lib_barcode.get_value('Molecular Barcode Sequence'))
         pkr = atac ? mo_lib.get_value('SS-PKR') : mo_lib.get_value('MO cDNA').get_value('SS-PKR')
         sse = pkr.get_value('Share Seq Experiment')
         # Round 1 Barcode Set belongs to the library's Share Seq Experiment Component
@@ -78,11 +78,11 @@ def format_pipeline_inputs(copas)
         r2 = sse.get_value('Round 2 barcode set')
         r3 = sse.get_value('Round 3 barcode set')
         r1_list = r1.get_value('Round 1 Barcode Set Subject List')
-            .map{ |rb| rb.get_value('Round 1 barcode sequence') }
+            .map{ |rb| reverse_complement(rb.get_value('Round 1 barcode sequence')) }
         r2_list = r2.get_value('Round 2 Barcode Set Subject List')
-            .map{ |rb| rb.get_value('Round 2 barcode sequence') }
+            .map{ |rb| reverse_complement(rb.get_value('Round 2 barcode sequence')) }
         r3_list = r3.get_value('Round 3 Barcode Set Subject List')
-            .map{ |rb| rb.get_value('Round 3 barcode sequence') }
+            .map{ |rb| reverse_complement(rb.get_value('Round 3 barcode sequence')) }
 
         # Unique pkr-library combination
         # key = pkr.name.gsub(' ', '-') + '|' + library_type + '|' + lib_barcode.name

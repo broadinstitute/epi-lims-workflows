@@ -86,7 +86,40 @@ def format_import_inputs(project, request):
     )
 
 
+def create_barcode_files(barcodes):
+    filenames = []
+    dir = '/tmp'
+    # Upload the CSV file to Google Cloud Storage
+    storage_client = storage.Client()
+    bucket_name = "broad-epi-cromwell"
+    bucket = storage_client.bucket(bucket_name)
+    for barcode_set in barcodes:
+        # Use the first entry of the first sublist as the filename
+        basename = barcode_set[0][0]
+        filename = f'{dir}/{basename}.tsv'
+        blob = bucket.blob(basename)
+        if blob.exists():
+            print(f'{basename} already exists in {bucket_name}. Skipping upload.')
+        else:
+            # Create the TSV file locally
+            with open(filename, 'w', newline='') as file:
+                writer = csv.writer(file, delimiter='\t')
+                for row in barcode_set:
+                    writer.writerow(row)
+            # Upload the file to GCS
+            blob.upload_from_filename(filename)
+            print(f'{filename} has been uploaded to {bucket_name}.')
+        # Get the GCS path and append to the list
+        gcs_path = f'gs://{bucket_name}/{basename}'
+        filenames.append(gcs_path)
+    return filenames
+
+
 def format_shareseq_import_inputs(project, request):
+    # Create and upload barcode files
+    request['pipelines'][0]['round1Barcodes'] = create_barcode_files(request.get('pipelines')[0].get('round1Barcodes'))
+    request['pipelines'][0]['round2Barcodes'] = create_barcode_files(request.get('pipelines')[0].get('round2Barcodes'))
+    request['pipelines'][0]['round3Barcodes'] = create_barcode_files(request.get('pipelines')[0].get('round3Barcodes'))
     return dict_to_bytes_io(
         {
             "SSBclToFastq.bcl": "{0}/{1}".format(

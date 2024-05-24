@@ -25,9 +25,9 @@ struct PipelineInputs {
 	#     ["SS V2 LEFT HALF", "CAGTCAGT", "GGGGCCCC", "GGTTCCAA"]	
 	#   ],
 	# ]
-	Array[Array[Array[String]]] round1Barcodes
-	Array[Array[Array[String]]] round2Barcodes
-	Array[Array[Array[String]]] round3Barcodes
+	Array[File] round1Barcodes
+	Array[File] round2Barcodes
+	Array[File] round3Barcodes
 
 	Array[String] ssCopas
 	Array[String] pkrIds
@@ -200,33 +200,15 @@ workflow SSBclToFastq {
 		Float memory2 = (ceil(0.8 * bclSize) * 1.25) / 4 # an unusual increase from 0.25 x for black swan
 		
 		scatter(i in range(length(p.pkrIds))){
-			# TODO: migrate reverse complementing to the after script
-			call make_tsv as round1 {
-				input:
-					barcodes = p.round1Barcodes[i]
-			}
-			call make_tsv as round2 {
-				input:
-					barcodes = p.round2Barcodes[i]
-			}
-			call make_tsv as round3 {
-				input:
-					barcodes = p.round3Barcodes[i]
-			}
-			call rev_comp {
-				input: 
-					name = p.multiplexParams[i][0],
-					seq = p.multiplexParams[i][1]
-			}
 			Copa copa_map = object {
 				name: p.ssCopas[i],
 				pkrId: p.pkrIds[i],
-				library: rev_comp.id,
-				barcodeSequence: rev_comp.out,
+				library: p.multiplexParams[i][0],
+				barcodeSequence: p.multiplexParams[i][1],
 				genome: p.genomes[i],
-				round1: round1.tsv,
-				round2: round2.tsv,
-				round3: round3.tsv,
+				round1: p.round1Barcodes[i],
+				round2: p.round2Barcodes[i],
+				round3: p.round3Barcodes[i],
 				sampleType: p.sampleTypes[i]
 			}
 
@@ -433,47 +415,11 @@ task make_tsv {
 		Array[Array[String]] barcodes
 	}
 
-	File raw_tsv = write_tsv(barcodes)
-
-	command <<<
-		# Define a function to calculate the reverse complement of a DNA sequence
-		reverse_complement() {
-			local sequence="$1"
-			local reversed_sequence=$(echo "$sequence" | rev)
-			local complement=$(echo "$reversed_sequence" | tr 'ATCGatcg' 'TAGCtagc')
-			echo "$complement"
-		}
-
-		# Input TSV file
-		input_file=~{raw_tsv}
-
-		# Output TSV file
-		output_file="output.tsv"
-
-		# Check if the input file exists
-		if [ -e "$input_file" ]; then
-			# Process each line in the input file
-			while IFS=$'\t' read -r -a line; do
-				name="${line[0]}"
-				# Join the DNA sequences with tabs, skipping the first element
-				dna_sequences=$(IFS=$'\t'; echo "${line[@]:1}")
-				
-				# Calculate the reverse complement for the DNA sequences
-				reversed_dna_sequences=$(reverse_complement "$dna_sequences" | tr ' ' '\t')
-
-				# Write the results to the output file and dedpulicate
-				echo -e "$name\t$reversed_dna_sequences" >> "$output_file"
-				sort -u "$output_file" -o "$output_file"
-
-			done < "$input_file"
-		else
-			echo "Input file not found: $input_file"
-			exit 1
-		fi	
+	command <<<	
 	>>>
 
 	output {
-		File tsv = "output.tsv"
+		File tsv = write_tsv(barcodes)
 	}
 
 	runtime {
