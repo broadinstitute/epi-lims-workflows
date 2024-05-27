@@ -147,7 +147,7 @@ def format_shareseq_proto_inputs(project, request):
     # Open the file in write mode
     with open(tsv_file, 'w', newline='') as file:
         # Create a TSV writer
-        writer = csv.writer(file, delimiter='\t')
+        writer = csv.writer(file,  delimiter='\t', quotechar='"', escapechar = '\\', quoting=csv.QUOTE_NONE)
         
         data = request.get('lane_subsets')
         
@@ -159,9 +159,14 @@ def format_shareseq_proto_inputs(project, request):
         n_rows = len(data['libraries'])
         
         # Header
-        writer.writerow(['Library','PKR','R1_subset','Type','Whitelist','Raw_FASTQ_R1','Raw_FASTQ_R2','Genome','Notes'])
+        writer.writerow(['Library','PKR','R1_subset','Type','Whitelist','Raw_FASTQ_R1','Raw_FASTQ_R2','Genome','Notes', 'Context'])
         
-        for row_values in zip(data['libraries'], data['pkrIds'], data['round1Subsets'], data['sampleTypes'], whitelists, data['reads1'], data['reads2'], data['genomes'], ['']*n_rows):
+        # Create metadata JSONs
+        contexts = []
+        for name, uid in zip(request['subj_name'].split(','), request['subj_id'].split(',')):
+            contexts.append(json.dumps({'name': name, 'uid': uid }))
+            
+        for row_values in zip(data['libraries'], data['pkrIds'], data['round1Subsets'], data['sampleTypes'], whitelists, data['reads1'], data['reads2'], data['genomes'], ['']*n_rows, contexts):
             writer.writerow(row_values)
     
     script_path = 'write_terra_tables.py'
