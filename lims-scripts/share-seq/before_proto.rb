@@ -3,7 +3,8 @@ extend UI
 bcl_names = subjects.map{ |s| s.get_value('SS-CoPA').get_value('SS-PA').get_value('HiSeq Folder Name') }
     .uniq
 
-raise 'Selected Lane Subsets come from different BCLs' if bcl_names.length > 1
+show_alert('Selected Lane Subsets come from different BCLs') if bcl_names.length > 1
+table_name = bcl_names.length == 1 ? File.basename(bcl_names[0], '.*') : ""
 
 params[:custom_fields] = UIUtils.encode_fields([
     field_set(
@@ -20,7 +21,7 @@ params[:custom_fields] = UIUtils.encode_fields([
                     nil,
                     fieldLabel: 'Terra Table Name',
                     required: true,
-                    defaultValue: File.basename(bcl_names[0], '.*')
+                    defaultValue: table_name,
                 ),
                 udf(
                     'text_attribute_for_tasks',
