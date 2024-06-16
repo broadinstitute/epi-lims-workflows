@@ -58,7 +58,7 @@ def format_pipeline_inputs(lane_subsets)
         r1 = lib.get_value('SSEC').get_value('Round 1 barcode set')
  
         pkr_names.append(sanitize(pkr.name))
-        libraries.append(sanitize(lib_barcode.name))
+        libraries.append(sanitize(mo_lib.name))
         copa_names.append(sanitize(copa.name))
         sample_types.append(sample_type)
         genomes.append(get_genome(spec.name))
