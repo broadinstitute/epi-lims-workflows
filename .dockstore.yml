@@ -1,0 +1,9 @@
+version: 1.2
+workflows:
+  - name: "terra-upsert"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/terra_upsert.wdl
+
+  - name: "SHARE-seq-import"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/shareseq_imports.wdl
