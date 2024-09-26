@@ -7,3 +7,15 @@ workflows:
   - name: "SHARE-seq-import"
     subclass: WDL
     primaryDescriptorPath: /wdls/shareseq_imports.wdl
+
+  - name: "ChIP-seq-import"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/chipseq_imports.wdl
+
+  - name: "ChIP-seq"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/chipseq.wdl
+    
+  - name: "CNV"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/cnv.wdl

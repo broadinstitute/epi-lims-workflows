@@ -267,8 +267,8 @@ task ExtractBarcodes {
   Int diskSize = ceil(1.9 * bclSize + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-  Float memory = ceil(0.8 * bclSize) * 1.25  # an unusual increase from 0.25 x for black swan
-  Int javaMemory = ceil((memory - 0.5) * 1000)
+  Float memory = ceil(0.8 * bclSize) * 2.25  # an unusual increase from 0.25 x for black swan
+  Int javaMemory = ceil((memory * 0.9) * 1000)
 
   command <<<
     set -e
@@ -370,8 +370,8 @@ task BasecallMetrics {
   Int diskSize = ceil(1.9 * size(bcl, 'G') + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-  Float memory = 4
-  Int javaMemory = ceil((memory - 0.25) * 1000)
+  Float memory = 16
+  Int javaMemory = ceil((memory * 0.8) * 1000)
 
   command <<<
     set -e
@@ -472,7 +472,7 @@ task BasecallsToBams {
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
   Float memory = ceil(5.4 * bclSize + 147) * 0.25
-  Int javaMemory = ceil((memory - 0.5) * 1000)
+  Int javaMemory = ceil((memory * 0.9) * 1000)
 
   command <<<
     set -e

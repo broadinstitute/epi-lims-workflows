@@ -90,6 +90,7 @@ workflow CNVAnalysis {
   call classifying {
     input:
       bed = cnv_rescaling.outBinnedBed,
+      genomeName = genomeName,
       dockerImage = dockerImage,
   }
 
@@ -213,7 +214,7 @@ task cnv_rescaling {
   runtime {
     docker: dockerImage
     disks: 'local-disk 1 HDD'
-    memory: '2.25G'
+    memory: '4G'
     cpu: 1
   }
 
@@ -286,12 +287,13 @@ task pbs {
 task classifying {
   input {
     File bed
+    String genomeName
     String dockerImage
   }
   
   command {
     ulimit -s 65535 #addresses C stack overflow R --vanilla --max-ppsize=500000
-    Rscript /scripts/classifying/test.R ${bed} /references/rf.RData
+    Rscript /scripts/classifying/test.R ${bed} ${genomeName}
   }
 
   output {
@@ -367,7 +369,7 @@ task export {
     set -e
 
     gsutil cp '~{binnedBed}' '~{out.binnedBed}'
-    if [ "~{isInputControl}" == "true" && "~{bypassCNVRescalingStep}" == "false" ]; then
+    if [ "~{isInputControl}" == "true" ] && [ "~{bypassCNVRescalingStep}" == "false" ]; then
       gsutil cp '~{cnvRatiosBed}' '~{out.cnvRatiosBed}'
     fi
     gsutil cp '~{fittingParams}' '~{out.fittingParams}'

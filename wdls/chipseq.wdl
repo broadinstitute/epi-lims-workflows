@@ -726,7 +726,7 @@ task picard_mark_duplicates {
     Int diskSize = ceil(8.5 + 2 * bamSize)
 
     Int memSize = ceil(3.5 + 17 * bamSize)
-    Int javeMemMB = memSize * 1000 - 500
+    Int javeMemMB = ceil((memSize * 0.9) * 1000)
 
     command <<<
         java -Xmx~{javeMemMB}m -jar /opt/picard.jar \
@@ -792,7 +792,7 @@ task picard_mark_duplicates_filter {
     Int diskSize = ceil(8.5 + 5 * bamSize)
 
     Int memSize = ceil(3.5 + 17 * bamSize)
-    Int javeMemMB = memSize * 1000 - 500
+    Int javeMemMB = ceil((memSize * 0.9) * 1000)
 
     command <<<
         tot=$(samtools view -c '~{bam}')
@@ -844,13 +844,13 @@ task picard_mark_duplicates_filter {
         if [ '~{paired}' == 'true' ]
         then
             samtools view -F 1804 -f 2 -b tmp.marked.bam > '~{outBam}'
-            expr $tot / 2 > total_fragments.txt
-            expr $aln / 2 > aligned_fragments.txt
-            expr $dup / 2 > duplicates.txt
+            echo $(($tot / 2)) > total_fragments.txt
+            echo $(($aln / 2)) > aligned_fragments.txt
+            echo $(($dup / 2)) > duplicates.txt
 
         else
             samtools view -F 1804 -b tmp.marked.bam > '~{outBam}'
-            expr $tot > total_fragments.txt
+            echo $(($tot)) > total_fragments.txt
             echo $aln > aligned_fragments.txt
             echo $dup > duplicates.txt
         fi
@@ -910,7 +910,7 @@ task genotyping_fingerprint {
     Float bamSize = size(bam, 'G')
     Int cpu = 4
     Float memory = 15
-    Int javaMemory = ceil((memory - 0.25) * 1000)
+    Int javaMemory = ceil((memory * 0.8) * 1000)
 
     String fingerprintBam = 'fingerprint.bam'
     String lodOut = 'self_lod.txt'
@@ -937,8 +937,10 @@ task genotyping_fingerprint {
                 VALIDATION_STRINGENCY=SILENT
 
         samtools reheader \
-            -c 'sed -E "s|(\tSM:)[^\t]+|\1~{donor}|"' 'out.bam' \
+            -c 'sed -E "s|(\tSM:)[^\t]+|\1~{donor}|"' 'sorted.bam' \
             > '~{fingerprintBam}'
+
+        samtools index '~{fingerprintBam}'
 
         java -Xmx~{javaMemory}m -jar /opt/picard.jar \
             CrosscheckFingerprints \
@@ -1014,7 +1016,7 @@ task insert_size_metrics {
 
     Int diskSize = ceil(1.25 * size(bam, 'G'))
     Int memory = 3500
-    Int javaMemory = memory - 200
+    Int javaMemory = ceil(memory * 0.8)
 
     String histName = 'histogram.pdf'
     String metricsName = 'metrics.txt'
@@ -1155,7 +1157,7 @@ task picard_collect_alignment_summary_metrics {
     String alignedKey = if paired then "READS_ALIGNED_IN_PAIRS" else "PF_READS_ALIGNED"
 
     Int memory = 4
-    Int javaMemory = ceil((memory - 0.5) * 1000)
+    Int javaMemory = ceil((memory * 0.8) * 1000)
     Int diskSize = ceil(1.5 * size([in_bam, in_fasta], 'G'))
 
     command <<<
