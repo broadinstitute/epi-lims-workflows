@@ -1,161 +1,78 @@
-# NOTE this is the old after script for the original chip-seq
-# bcl import prototype. It has a lot of redundant code with 
-# import_functions and after_ss and should be cleaned up. 
+require 'json'
+require_script 'parse_xml'
+require_script 'import_helpers'
 
-# TODO ensure RunParameters.xml has the same run ID as
-# the one supplied in before script
-# TODO implement parsing - LIMS exposes ruby xml parser
-# imported at the top
+# Load the XML file
+file_path = params['Run Parameters File'].path
+xml_file = File.read(file_path)
 
-require "rexml/document"
-require_script 'submit_jobs'
+run_params = parse_run_params_xml(subjects, params, xml_file)
 
-def get_read_structure(seq_technology, read1, read2, index_read1, index_read2)
-    read_structure = [
-      "#{read1}T",
-      '8B',
-      (index_read1 > 8 ? ["#{index_read1 - 8}S"] : []).flatten,
-      (index_read2 >= 8 ? ['8B'] : []).flatten,
-      (index_read2 > 8 ? ["#{index_read2 - 8}S"] : []).flatten,
-    ]
-    if seq_technology == 'ChIP'
-        return [
-            read_structure.flatten,
-            (read2 ? ["#{read2}T"] : []).flatten
-        ].join(' ')
-    end
-    # TODO Mint-ChIP
-    # if read2 <= 8
-    #     throw Error('Read2 must be > 8')
-    # end
-    return [read_structure.flatten, '8B', "#{read2 - 8}T"].join(' ')
+# Error checking
+pa_without_lanes = subjects.find { |pa| pa.get_value('PA_Lanes').empty? }
+
+if pa_without_lanes && !run_params[:lanes]
+  raise_message("No lanes specified for #{pa_without_lanes.name}")
 end
-
-# TODO implement parsing and remove hardcoded values
-def parse_inputs(xml)
-    return {
-        folder_name: '220424_SL-NXD_0685_AHJJ3WBGXL',
-        experiment_name: '',
-        instrument_model: 'NextSeq',
-        read1: 30,
-        read2: 30,
-        index_read1: 99,
-        index_read2: 8,
-        max_mismatches: 1,
-        min_mismatch_delta: 1
-    }
-end
-
-def get_candidate_molecular_barcodes(sequencing_schema)
-    molecular_barcodes = find_subjects(query:search_query(from:'Molecular Barcode') { |qb|
-        qb.compare('Sequencing Schema', :eq, sequencing_schema)
-    })
-    candidates = {}
-    molecular_barcodes.each{ |mb| candidates[mb.name] = mb.get_value('Molecular Barcode Sequence') }
-    return candidates
-end
-
-def get_candidate_molecular_indices()
-    molecular_indexes = find_subjects(query:search_query(from:'ChrPrp Index') { |qb|
-        qb.compare('ChrPrp Index In-Use', :eq, 'TRUE')
-    })
-    candidates = {}
-    molecular_indexes.each{ |mi| candidates[mi.name] = mi.get_value('Molecular Index Sequence') }
-    return candidates
-end
-
-def reverse_complement(barcode)
-    bases = {
-      A: 'T',
-      T: 'A',
-      C: 'G',
-      G: 'C',
-      N: 'N',
-    }
-    return barcode
-      .split('')
-      .reverse()
-      .map{ |base| bases[base] }
-      .join('')
-end
-
-def get_barcodes(copa, seq_technology, instrument_model)
-    library = copa
-        .get_value('Pool Component')
-        .get_value('Library')
-    molecular_barcode = library
-        .get_value('Molecular Barcode')
-        .get_value('Molecular Barcode Sequence')
-    if seq_technology == 'Mint-ChIP'
-        molecular_index_sequence = library
-            .get_value('ChrPrp')
-            .get_value('ChrPrp Index')
-            .get_value('Molecular Index Sequence')
-    else
-        molecular_index_sequence = ''
-    end
-    barcodes = [
-        molecular_barcode,
-        molecular_index_sequence
-    ]
-    if instrument_model == 'NextSeq' &&
-        ((barcodes.length() == 2 && seq_technology == 'ChIP') || barcodes.length() == 3)
-        barcodes[1] = reverse_complement(barcodes[1])
-    end
-    return barcodes.map{ |b| [copa.name, b] }
-end
-
-file = File.new(params['Run Parameters File'].path)
-doc = REXML::Document.new file
-run_params = parse_inputs(doc)
-
-seq_technology = params['Sequencing Technology']
-read_structure = get_read_structure(
-    seq_technology,
-    run_params[:read1],
-    run_params[:read2],
-    run_params[:index_read1],
-    run_params[:index_read2]
-)
 
 # File on prem to transfer
-parent_path = params['text_attribute_for_tasks2']
+parent_path = params['text_attribute_for_tasks3']
 bcl = File.join(parent_path, run_params[:folder_name])
 
-candidate_molecular_barcodes = get_candidate_molecular_barcodes(params['Sequencing Schema'])
+candidate_molecular_barcodes = get_candidate_molecular_barcodes(
+  params['Sequencing Schema'], 
+  run_params[:instrument_model]
+)
+candidate_molecular_indices = get_candidate_molecular_indices()
 
-# TODO not sure if this logic is correct
-candidate_molecular_indices = seq_technology == 'Mint-ChIP' ? get_candidate_molecular_indices() : {}
-
-# TODO debug - this is causing script to silently fail
 # Assemble arguments for individual Pool Aliquot pipelines
-# pipelines = subjects.map do |pa|
-#     barcodes = pa['CoPA SBR'].map do |copa|
-#         return get_barcodes(
-#             copa,
-#             seq_technology,
-#             run_params[:instrument_model]
-#         )
-#     end 
-#     return {
-#         lanes: pa['PA_Lanes'],
-#         # multiplex_params: barcodes.flatten,
-#         multiplex_params: [],
-#         max_mismatches: run_params[:max_mismatches],
-#         min_mismatch_delta: run_params[:min_mismatch_delta]
-#     }
-# end
+pipelines = subjects.map do |pa|
+  multiplexParams = pa['CoPA SBR'].map do |copa|
+    get_multiplex_params(
+      copa, 
+      params['Sequencing Technology'], 
+      run_params[:instrument_model]
+    )
+  end
+  projects = pa['CoPA SBR'].map{ |copa| get_projects(copa) }.to_h
+  pipeline = {
+    lanes: pa.get_value('PA_Lanes').empty? ?
+             run_params[:lanes] :
+             pa.get_value('PA_Lanes').map(&:to_i),
+    multiplexParams: multiplexParams,
+    maxMismatches: run_params[:max_mismatches],
+    minMismatchDelta: run_params[:min_mismatch_delta],
+    outputJson: "gs://broad-epi-bcl-output-jsons/#{pa.id}.json",
+    context: {
+      poolAliquotUID: pa.id,
+      projects: projects,
+      sequencingTechnology: params['Sequencing Technology'],
+      instrumentModel: run_params[:instrument_model],
+      experimentName: run_params[:experiment_name],
+      folderName: run_params[:folder_name],
+      runDate: run_params[:run_date],
+      genomeName: get_default_genome(params['text_attribute_for_tasks2']),
+      lims7: true
+    }.to_json
+  }
+  pipeline
+end
 
 # Assemble arguments for overall cromwell workflow submission
-submit_jobs([{
-    :workflow => 'import',
+req = [{
+    :workflow => 'chip-seq-import',
     :subj_name => subjects.map{ |s| s.name }.join(','),
     :subj_id => subjects.map{ |s| s.id }.join(','),
-    :on_hold => true,
+    # :on_hold => true,
     :bcl => bcl,
-    :read_structure => read_structure,
+    :read_structure => run_params[:read_structure],
     :candidate_molecular_barcodes => candidate_molecular_barcodes,
     :candidate_molecular_indices => candidate_molecular_indices,
-    # :pipelines => pipelines,
-    :pipelines => [],
-}])
+    :pipelines => pipelines,
+}]
+
+# show_message("#{req.to_json}")
+
+Rails.logger.info("#{req.to_json}")
+
+submit_jobs(req)
