@@ -8,13 +8,6 @@ workflow TerraUpsert {
 		String dockerImage = "us.gcr.io/buenrostro-share-seq/share_task_preprocess"
 	}
 	
-	call Upsert {
-		input:
-			tsv = tsv,
-			terra_project = terra_project,
-			workspace_name = workspace_name, 
-			dockerImage = dockerImage
-	} 
 }
 
 task Upsert {
