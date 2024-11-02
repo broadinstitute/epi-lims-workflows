@@ -126,10 +126,10 @@ def format_pipeline_inputs(copas)
     }
 end
 
-pipeline_inputs = format_pipeline_inputs(subj['SS-CoPA SBR'])
+pipeline_inputs = format_pipeline_inputs(subj['SS-CoPA SBR'].sort_by(&:name))
 # run_parameters = parse_run_parameters(params['Run Parameters File'], sequencing_technology)
 candidate_molecular_indices = get_candidate_molecular_indices()
-candidate_molecular_barcodes = get_candidate_molecular_barcodes(params['Sequencing Schema'])
+candidate_molecular_barcodes = get_candidate_molecular_barcodes(params['Sequencing Schema'], instrument_model)
 
 req = [{
     :workflow => 'share-seq-import',
@@ -143,7 +143,7 @@ req = [{
     # Note that wdl expects multiple pipelines for multiple SS-PA
     # but we only allow 1 SS-PA to be processed at a time
     :pipelines => [
-        lanes: subj.get_value('PA_Lanes'),
+        lanes: subj.get_value('PA_Lanes').map(&:to_i),
         multiplexParams: pipeline_inputs[:multiplex_params],
         round1Barcodes: pipeline_inputs[:round1_barcodes],
         round2Barcodes: pipeline_inputs[:round2_barcodes],

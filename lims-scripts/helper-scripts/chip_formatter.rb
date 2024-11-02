@@ -1,4 +1,13 @@
 require 'set'
+require 'net/http'
+require 'json'
+
+def get_commit_hash(uri)
+  url = URI(uri)
+  response = Net::HTTP.get(url)
+  data = JSON.parse(response)
+  "git-#{data.first['sha'][0..6]}"
+end
 
 def format_req(subjects, genome, aggregation: nil)
   # Sort lane subsets by UID
@@ -81,7 +90,10 @@ def format_req(subjects, genome, aggregation: nil)
     cellTypes: cell_types.to_a.sort.join(';'),
     epitopes: epitopes.to_a.sort.join(';'),
     projects: projects,
-    lims7: true
+    lims7: true,
+    pipelineVersion: get_commit_hash(
+      'https://api.github.com/repos/broadinstitute/epi-lims-workflows/commits?path=wdls/chipseq_imports.wdl'
+    )
   }
 
   if aggregation
@@ -89,9 +101,9 @@ def format_req(subjects, genome, aggregation: nil)
   end
 
   req = [{
-    :workflow => 'chipseq',
-    :subj_name => subjects.map{ |s| s.name }.join(','),
-    :subj_id => subjects.map{ |s| s.id }.join(','),
+    :workflow => 'chip-seq',
+    :subj_name => aggregation ? aggregation[:name] : subjects.map{ |s| s.name }.join(','),
+    :subj_id => aggregation ? aggregation[:uid] : subjects.map{ |s| s.id }.join(','),
     :donor => get_prop(donors, 'Donor'),
     :genome_name => genome,
     :peak_styles => get_prop(segmenters, 'Preferred Segmenter'),

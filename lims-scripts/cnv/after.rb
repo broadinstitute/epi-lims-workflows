@@ -88,7 +88,7 @@ subjects.each do |app|
     :bam => app['BAM Filename URI'],
     :cnv_ratios_bed => cnv_ratios_bed,
     :genome_name => ref_seq.name.gsub('_picard', ''),
-    :bypass_rescaling => bypass_rescaling,
+    :bypass_rescaling => bypass_rescaling.to_s,
     :context => {
       uid: app.id,
       inputControlName: input_control,
@@ -98,4 +98,7 @@ subjects.each do |app|
 end
 
 # show_message("#{query_params.to_json}")
+
+Rails.logger.info("#{query_params.to_json}")
+
 submit_jobs(query_params)

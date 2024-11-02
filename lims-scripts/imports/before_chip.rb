@@ -130,7 +130,7 @@ params[:custom_fields] = UIUtils.encode_fields([
           defaultValue: pa_lanes
         ),
         # NOTE this UDF has to be created in LIMS as a File type
-        udf('Run Parameters File', nil, required: false)
+        udf('Run Parameters File', nil, required: true)
       ])
     ]
   )

@@ -17,7 +17,7 @@ end
 
 # File on prem to transfer
 parent_path = params['text_attribute_for_tasks3']
-bcl = File.join(parent_path, run_params[:folder_name])
+bcl = File.join(parent_path, params['HiSeq Folder Name'])
 
 candidate_molecular_barcodes = get_candidate_molecular_barcodes(
   params['Sequencing Schema'], 

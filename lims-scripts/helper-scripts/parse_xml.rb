@@ -43,8 +43,8 @@ def parse_run_params_xml(subjects, params, xml)
   )
 
   is_chip = params['Sequencing Technology'] == 'ChIP'
-  data[:max_mismatches] = is_chip ? '1' : '2'
-  data[:min_mismatch_delta] = is_chip ? '1' : '2'
+  data[:max_mismatches] = is_chip ? 1 : 2
+  data[:min_mismatch_delta] = is_chip ? 1 : 2
 
   data
 end
