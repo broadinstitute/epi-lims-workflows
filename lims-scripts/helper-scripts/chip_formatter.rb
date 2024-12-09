@@ -67,8 +67,8 @@ def format_req(subjects, genome, aggregation: nil)
     species_common_names.add(species_common_name)
     cell_types.add(cell_type)
     epitopes.add(epitope)
-    projects[ls.name] = project.name
-    
+    projects[ls.name] = [*project.name]
+
     # Format the lane subsets for workflow input
     lane_subset = {
       :name => ls.name,

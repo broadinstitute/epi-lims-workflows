@@ -61,7 +61,7 @@ def format_chipseq_import_inputs(project, request, configuration):
         "BclToFastq.readStructure": f'"{request.get("read_structure")}"',
         "BclToFastq.pipelines": json.dumps(request.get("pipelines")),
         "BclToFastq.dockerImage": '"us.gcr.io/{0}/alignment-tools"'.format(project),
-        "BclToFastq.outputDir": '"gs://{0}-lane-subsets/"'.format(project),
+        "BclToFastq.outputDir": '"gs://{0}-lane-subsets"'.format(project),
     }
 
     return configuration
@@ -69,7 +69,7 @@ def format_chipseq_import_inputs(project, request, configuration):
 
 def format_chipseq_inputs(project, request, configuration):
     genome = request.get("genome_name")
-    
+
     configuration["inputs"] = {
         "ChipSeq.fasta": '"gs://{0}-genomes/{1}/{1}.fasta"'.format(project, genome),
         "ChipSeq.donor": f'"{request.get("donor")}"',
@@ -84,7 +84,7 @@ def format_chipseq_inputs(project, request, configuration):
         "ChipSeq.classifierDockerImage": '"us.gcr.io/{0}/classifier"'.format(project),
         "ChipSeq.outputJsonDir": '"gs://{0}-chipseq-output-jsons"'.format(project),
     }
-    
+
     return configuration
 
 
@@ -98,11 +98,11 @@ def format_cnv_inputs(project, request, configuration):
         "CNVAnalysis.outFilesDir": '"gs://{0}-aggregated-alns/"'.format(project),
         "CNVAnalysis.outJsonDir": '"gs://{0}-cnv-output-jsons/"'.format(project),
     }
-    
+
     cnv_ratios_bed = request.get("cnv_ratios_bed")
     if cnv_ratios_bed is not None:
          configuration["inputs"]["CNVAnalysis.cnvRatiosBed"] = f'"{cnv_ratios_bed}"'
-    
+
     return configuration
 
 
@@ -114,7 +114,7 @@ def format_shareseq_import_inputs(project, request, configuration):
     request['pipelines'][0]['round1Barcodes'] = r1
     request['pipelines'][0]['round2Barcodes'] = r2
     request['pipelines'][0]['round3Barcodes'] = r3
-    
+
     configuration["inputs"] = {
         "SSBclToFastq.bcl": '"{0}/{1}"'.format(
                 request.get("bucket"), request.get("bcl")
@@ -132,19 +132,19 @@ def format_shareseq_import_inputs(project, request, configuration):
         "SSBclToFastq.dockerImage": '"mknudson/task_preprocess:update-correction"',
         "SSBclToFastq.outputDir": '"gs://{0}-ss-lane-subsets/"'.format(project),
     }
-    
+
     return configuration
 
 
 def format_shareseq_proto_inputs(project, request, configuration):
     tsv = create_terra_table(request, project)
-    
+
     configuration["inputs"] = {
         "TerraUpsert.tsv": f'"{tsv}"',
         "TerraUpsert.terra_project": f'"{request.get("terra_project")}"',
         "TerraUpsert.workspace_name": f'"{request.get("workspace_name")}"',
     }
-    
+
     return configuration
     # Terminate the rest of the cloud function execution
     # sys.exit()
@@ -230,13 +230,13 @@ def launch_cromwell(request):
         print(f"Method configuration: {json.dumps(inputs, indent=2)}")
 
         method_response = requests.post(
-            method_endpoint, 
-            headers=header, 
+            method_endpoint,
+            headers=header,
             json=inputs
         )
         print(f"Status Code: {method_response.status_code}")
         print(f"Response Text: {json.dumps(method_response.json(), indent=2)}")
-        
+
         # Submit the workflow to cromwell
         submission_manifest = {
             "methodConfigurationNamespace": "Shoresh_operations_workflows",
@@ -264,7 +264,7 @@ def launch_cromwell(request):
 
         print(f"Cromwell tatus Code: {response.status_code}")
         print(f"Cromwell response Text: {json.dumps(response.json(), indent=2)}")
-        
+
         responses.append({"subj_name": req["subj_name"], "response": response.json()})
         # Start the bcl transfer for import workflows
         # if req['workflow'] == 'import':
