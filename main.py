@@ -237,11 +237,13 @@ def launch_cromwell(request):
         print(f"Status Code: {method_response.status_code}")
         print(f"Response Text: {json.dumps(method_response.json(), indent=2)}")
 
+        comment = req.get("subj_name")
+
         # Submit the workflow to cromwell
         submission_manifest = {
             "methodConfigurationNamespace": "Shoresh_operations_workflows",
             "methodConfigurationName": method,
-            "userComment": req.get("subj_name"),
+            "userComment": comment[:1000] if len(comment) > 1000 else comment,
             "entityType": None,
             "entityName": None,
             "expression": None,
