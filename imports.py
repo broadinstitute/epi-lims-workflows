@@ -242,7 +242,7 @@ def import_ss_lane_subsets(project, username, password, context, outputs, lims_l
     query_response = query_subjects(project, username, password, "SS-LS", lims_query)
     print(query_response)
     parsed_response = parse_query(query_response, udf_names)
-    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):   
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):
         lane_subsets = []
         buffer = []
         for library_output in lane_output["libraryOutputs"]:
@@ -282,12 +282,12 @@ def update_ss_pa(project, username, password, context, outputs):
         "Read2_Length": outputs["r2Length"]
     })
     return import_subjects(project, username, password, "SS-PA", pool_aliquots)
-    
+
 def import_bcl_outputs(project, username, password, outputs):
     # Import Lanes, CopSeqReqs, LaneSubsets
     # Can likely use import_lanes above for this function
     # Update Pool Aliquot
-    # Launch ChipSeq workflow? 
+    # Launch ChipSeq workflow?
     pass
 
 
@@ -298,8 +298,8 @@ def import_shareseq_import_outputs(project, username, password, outputs):
     print("parsing context")
     context = json.loads(outputs["context"])
     print(context)
-    
-    print(update_ss_pa(project, username, password, context, outputs)) 
+
+    print(update_ss_pa(project, username, password, context, outputs))
 
     print("Importing LIMS_Lanes")
     lims_lanes = import_lanes(
@@ -312,6 +312,10 @@ def import_shareseq_import_outputs(project, username, password, outputs):
     )
 
 def import_shareseq_proto_outputs(project, username, password, outputs):
+    # Do nothing
+    pass
+
+def import_chipseq_export_outputs(project, username, password, outputs):
     # Do nothing
     pass
 

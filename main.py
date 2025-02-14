@@ -11,6 +11,7 @@ from google.oauth2 import service_account
 # from format_shareseq_proto_inputs import format_shareseq_proto_inputs
 from format_helpers import create_barcode_files
 from format_helpers import create_terra_table
+from format_helpers import create_terra_table_chip
 import imports
 
 # from transfer import submit_bcl_transfer
@@ -150,9 +151,24 @@ def format_shareseq_proto_inputs(project, request, configuration):
     # sys.exit()
 
 
+def format_chipseq_export_inputs(project, request, configuration):
+    tsv = create_terra_table_chip(request, project)
+
+    configuration["inputs"] = {
+        "TerraUpsert.tsv": f'"{tsv}"',
+        "TerraUpsert.terra_project": f'"{request.get("terra_project")}"',
+        "TerraUpsert.workspace_name": f'"{request.get("workspace_name")}"',
+    }
+
+    return configuration
+    # Terminate the rest of the cloud function execution
+    # sys.exit()
+
+
 formatters = {
     "chip-seq-import": format_chipseq_import_inputs,
     "chip-seq": format_chipseq_inputs,
+    "chip-seq-export": format_chipseq_export_inputs,
     "cnv": format_cnv_inputs,
     "share-seq-import": format_shareseq_import_inputs,
     "share-seq-proto": format_shareseq_proto_inputs,
@@ -161,6 +177,7 @@ formatters = {
 wdls = {
     "chip-seq-import": "ChIP-seq-import",
     "chip-seq": "ChIP-seq",
+    "chip-seq-export": "terra-upsert",
     "cnv": "CNV",
     "share-seq-import": "SHARE-seq-import",
     "share-seq-proto": "terra-upsert",
@@ -169,6 +186,7 @@ wdls = {
 workflow_parsers = {
     "chip-seq-import": imports.import_bcl_outputs,
     "chip-seq": imports.import_chipseq_outputs,
+    "chip-seq-export": imports.import_chipseq_export_outputs,
     "cnv": imports.import_cnv_outputs,
     "share-seq-import": imports.import_shareseq_import_outputs,
     "share-seq-proto": imports.import_shareseq_proto_outputs,
