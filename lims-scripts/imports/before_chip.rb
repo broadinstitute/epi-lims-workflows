@@ -77,11 +77,20 @@ params[:custom_fields] = UIUtils.encode_fields([
           required: false,
           defaultValue: run_id
         ),
+        # TODO possibly get rid of this - we might only be receiving
+        # bcls from GCS now for share-seq
+        udf(
+          'Data delivery bucket',
+          nil,
+          fieldLabel: 'Data delivery bucket',
+          required: true,
+          defaultValue: subj['Data delivery bucket']
+        ),
         udf(
           'HiSeq Folder Name',
           nil,
           fieldLabel: 'HiSeq Folder Name',
-          required: false,
+          required: true,
           defaultValue: folder_name
         ),
         udf(
@@ -113,15 +122,6 @@ params[:custom_fields] = UIUtils.encode_fields([
     title: "<b>Run Parameters</b>",
     items: [
       field_container([
-        # TODO possibly get rid of this - we might only be receiving
-        # bcls from GCS now for share-seq
-        udf(
-          'text_attribute_for_tasks3',
-          nil,
-          fieldLabel: 'Parent path on NFS',
-          required: true,
-          defaultValue: 'Note: this may just be GCS'
-        ),
         udf(
           'PA_Lanes',
           nil,

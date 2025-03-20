@@ -16,7 +16,7 @@ if pa_without_lanes && !run_params[:lanes]
 end
 
 # File on prem to transfer
-parent_path = params['text_attribute_for_tasks3']
+parent_path = params['Data delivery bucket']
 bcl = File.join(parent_path, params['HiSeq Folder Name'])
 
 candidate_molecular_barcodes = get_candidate_molecular_barcodes(
