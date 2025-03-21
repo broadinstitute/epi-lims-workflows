@@ -468,7 +468,7 @@ task BasecallsToBams {
 
   Float bclSize = size(bcl, 'G')
 
-  Int diskSize = ceil(2.1 * bclSize + 5)
+  Int diskSize = ceil(2.25 * bclSize + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
   Float memory = ceil(5.4 * bclSize + 147) * 0.25
