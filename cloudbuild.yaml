@@ -4,6 +4,8 @@ substitutions:
   _REPO_OWNER: broadinstitute
   _GCR_REGISTRY: us.gcr.io
   _BUCKETS_REGION: us-east1
+  _ARTIFACT_REGISTRY: us-east1-docker.pkg.dev
+  _REPOSITORY: lims-tools
 
 steps:
 - name: gcr.io/cloud-builders/gcloud
@@ -15,5 +17,20 @@ steps:
   args:
   - ${_ENV}
   - ${_DELETION_POLICY}
+  timeout: 800s
 
-timeout: 800s
+# BCL Convert
+- name: 'gcr.io/cloud-builders/docker'
+  env:
+  - 'docker=dockerfiles/bcl_convert.dockerfile'
+  - 'image=${_ARTIFACT_REGISTRY}/${PROJECT_ID}/${_REPOSITORY}/bcl_convert:latest'
+  script: |
+    #!/usr/bin/env bash
+    if docker pull ${image}; then
+      docker build -t ${image} --cache-from ${image} -f ${docker} .
+    else
+      docker build -t ${image} -f ${docker} .
+    fi
+    docker push ${image}
+  waitFor: ['-']
+  timeout: 28800s
