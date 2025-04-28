@@ -95,6 +95,8 @@ def create_terra_table_chip(request, project):
         header = [
             "entity:{}_id".format(table_name),
             "epitope",
+            "celltype",
+            "description",
             "rep1-r1-fq",
             "rep1-r2-fq",
         ]
@@ -116,6 +118,8 @@ def create_terra_table_chip(request, project):
             row = [
                 row_data["libraries"],  # entity:dna_lib_id
                 row_data["epitopes"],   # epitope
+                row_data["celltypes"],
+                "_".join([row_data["libraries"], row_data["epitopes"], row_data["celltypes"]]),
                 json.dumps(row_data["reads1"]),  # rep1-r1-fq
                 json.dumps(row_data["reads2"]),  # rep1-r2-fq
             ]

@@ -33,6 +33,9 @@ def format_pipeline_inputs(pool_component)
     .get_value('Purchasable Antibody')
     .get_value('Epitope')
   chrprp = get_chrprp(lib)
+  celltype = chrprp.get_value('BioSAli')
+    .get_value('Biological Sample')
+    .get_value('Cell Type')
 
   wce_pcs = find_subjects(query:search_query(from:'Pool Component') { |pc|
     pc.and(
@@ -74,6 +77,7 @@ def format_pipeline_inputs(pool_component)
   return {
     :libraries => sanitize(lib.name),
     :epitopes => epitope.name,
+    :celltypes => sanitize(celltype.name),
     :reads1 => reads1.sort_by(&:downcase),
     :reads2 => reads2.sort_by(&:downcase),
     :ctrl_r1 => ctrl_r1,
