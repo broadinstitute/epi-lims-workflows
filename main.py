@@ -12,6 +12,7 @@ from google.oauth2 import service_account
 from format_helpers import create_barcode_files
 from format_helpers import create_terra_table
 from format_helpers import create_terra_table_chip
+import trackview
 import imports
 
 # from transfer import submit_bcl_transfer
@@ -49,6 +50,14 @@ def get_runtime_options(project, sa_key):
         }
     )
 
+def create_ucsc_trackview(project, request, credentials):
+    config = trackview.get_config(request['tracks'], credentials)
+    bucket_name = "{0}-trackview".format(project)
+    file_name = "{0}.txt".format(trackview.get_hash(request))
+    config_url = trackview.create_config_file(bucket_name, file_name, config, credentials)
+    session_url = trackview.generate_signed_url(bucket_name, "session.txt", credentials)
+    
+    return trackview.get_redirect_url(request['genome'], config_url, session_url)
 
 # TODO these formatters are a little redundant - we could simply pass
 # cnvRatiosBed directly in camel case and do something a little more clever
@@ -222,6 +231,11 @@ def launch_cromwell(request):
         credentials.refresh(google.auth.transport.requests.Request())
     header = {}
     credentials.apply(header)
+    
+    # Trackview Logic
+    if request_json.get("workflow") == "ucsc":
+        ucsc_url = create_ucsc_trackview(project, request_json, credentials)
+        return {"url": ucsc_url}
 
     # Get Cromwell runtime options
     options = get_runtime_options(project, sa_key)

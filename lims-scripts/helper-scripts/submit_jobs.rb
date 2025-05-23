@@ -2,14 +2,27 @@
 
 require_script 'system_variables'
 
-def submit_jobs(params)
+def submit_jobs(params, trackview: false)
+    request_body = if trackview
+        params
+    else
+        {
+            jobs: params
+        }
+    end
     # Submit the request 
     response = call_external_service(ENDPOINT, nil) do |req, http|
         req['Content-Type'] = "application/json; encoding='utf-8'; odata=verbose"
         req['Accept'] = "application/json"
-        req.body = { 'jobs': params }.to_json
+        req.body = request_body.to_json
     end
 
+    # Display URL if trackview
+    if trackview
+        show_message("<b>URL:</b> <a href='#{response['url']}'>#{response['url']}</a>")
+        return
+    end
+    
     # Display successes and failures for each subject
     submitted = []
     failures = []
