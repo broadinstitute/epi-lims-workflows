@@ -20,6 +20,16 @@ steps:
   timeout: 800s
 
 # BCL Convert
+- id: 'download-bcl-convert'
+  name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: bash
+  args:
+    - "-c"
+    - |
+      echo "Downloading bcl-convert RPM..."
+      gsutil cp gs://broad-epi_cloudbuild/bcl-convert-4.3.6-2.el7.x86_64.rpm bcl-convert.rpm
+  waitFor: ['-']
+
 - name: 'gcr.io/cloud-builders/docker'
   env:
   - 'docker=dockerfiles/bcl_convert.dockerfile'
@@ -31,6 +41,11 @@ steps:
     else
       docker build -t ${image} -f ${docker} .
     fi
+    if [ $? -ne 0 ]; then
+      # Notify Slack on build failure
+      # curl -X POST -H 'Content-type: application/json' --data '{\"text\":\"Build failed for ${image} in ${_REPOSITORY}\"}' ${_SLACK_WEBHOOK_URL}
+      exit 1
+    fi
     docker push ${image}
-  waitFor: ['-']
+  waitFor: ['download-bcl-convert']
   timeout: 28800s
