@@ -1,5 +1,6 @@
 import io
 import os
+import csv
 from datetime import datetime
 import json
 import requests
@@ -173,6 +174,57 @@ def format_chipseq_export_inputs(project, request, configuration):
     # Terminate the rest of the cloud function execution
     # sys.exit()
 
+def format_10x_import_inputs(project, request, configuration):
+    dir = '/tmp'
+    filename = '{}_samplesheet.csv'.format(request.get('subj_id'))
+    output_file = '{}/{}'.format(dir, filename)
+    
+    # Write the SampleSheet
+    with open(output_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter=',')
+        
+        # Write headers and sections
+        writer.writerow(["[Header]"])
+        writer.writerow(["FileFormatVersion", "2"])
+        writer.writerow([])
+        
+        writer.writerow(["[BCLConvert_Settings]"])
+        if request["lib_type"] == "ATAC":
+            writer.writerow(["CreateFastqForIndexReads", "1"])
+            writer.writerow(["TrimUMI", "0"])
+            writer.writerow(["OverrideCycles", "Y50;I8;U24;Y49"])
+        else:  # GEX
+            writer.writerow(["CreateFastqForIndexReads", "0"])
+        writer.writerow([])
+
+        # Write data section
+        writer.writerow(["[BCLConvert_Data]"])
+        if request["lib_type"] == "ATAC":
+            writer.writerow(["Sample_ID", "index"])
+            writer.writerows(request["samples"])
+        else:  # GEX expects 3 columns per sample
+            writer.writerow(["Sample_ID", "index", "index2"])
+            for sample in request["samples"]:
+                writer.writerow(sample)
+    
+    print(f"SampleSheet written to: {output_file}")
+    
+    # Upload the CSV file to Google Cloud Storage
+    storage_client = storage.Client()
+    bucket_name = "{0}-cromwell".format(project)
+    
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(filename)
+    blob.upload_from_filename(output_file)
+    
+    configuration["inputs"] = {
+        "BclConvertWorkflow.sample_sheet": '"gs://{}/{}"'.format(bucket_name, filename),
+        "BclConvertWorkflow.bcl_tar_gcs": '"{0}/{1}"'.format(
+                request.get("bucket"), request.get("bcl")
+            ),
+    }
+    
+    return configuration
 
 formatters = {
     "chip-seq-import": format_chipseq_import_inputs,
@@ -181,6 +233,7 @@ formatters = {
     "cnv": format_cnv_inputs,
     "share-seq-import": format_shareseq_import_inputs,
     "share-seq-proto": format_shareseq_proto_inputs,
+    "10x-import": format_10x_import_inputs,
 }
 
 wdls = {
@@ -190,6 +243,7 @@ wdls = {
     "cnv": "CNV",
     "share-seq-import": "SHARE-seq-import",
     "share-seq-proto": "terra-upsert",
+    "10x-import": "10X-import",
 }
 
 workflow_parsers = {
@@ -199,6 +253,7 @@ workflow_parsers = {
     "cnv": imports.import_cnv_outputs,
     "share-seq-import": imports.import_shareseq_import_outputs,
     "share-seq-proto": imports.import_shareseq_proto_outputs,
+    "10x-import": imports.import_10x_import_outputs,
 }
 
 

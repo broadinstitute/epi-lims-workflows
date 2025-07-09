@@ -367,3 +367,7 @@ def import_chipseq_outputs(project, username, password, outputs):
 
 def import_cnv_outputs(project, username, password, outputs):
     pass
+
+def import_10x_import_outputs(project, username, password, outputs):
+    # Do nothing
+    pass

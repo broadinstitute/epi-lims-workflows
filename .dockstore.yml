@@ -4,6 +4,10 @@ workflows:
     subclass: WDL
     primaryDescriptorPath: /wdls/terra_upsert.wdl
 
+  - name: "10X-import"
+    subclass: WDL
+    primaryDescriptorPath: /wdls/bcl_convert.wdl
+
   - name: "SHARE-seq-import"
     subclass: WDL
     primaryDescriptorPath: /wdls/shareseq_imports.wdl
