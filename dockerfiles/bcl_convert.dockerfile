@@ -21,5 +21,10 @@ RUN yum install -y curl python3 unzip && \
     ./google-cloud-sdk/install.sh --quiet && \
     rm google-cloud-sdk-468.0.0-linux-x86_64.tar.gz
 
+# Install xmlstarlet
+RUN yum -y install epel-release && \
+    yum -y install xmlstarlet && \
+    yum clean all
+
 # Add Cloud SDK to PATH
 ENV PATH="/google-cloud-sdk/bin:$PATH"
