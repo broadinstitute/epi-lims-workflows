@@ -218,10 +218,24 @@ def format_10x_import_inputs(project, request, configuration):
     blob.upload_from_filename(output_file)
     
     configuration["inputs"] = {
-        "BclConvertWorkflow.sample_sheet": '"gs://{}/{}"'.format(bucket_name, filename),
-        "BclConvertWorkflow.bcl_tar_gcs": '"{0}/{1}"'.format(
-                request.get("bucket"), request.get("bcl")
-            ),
+        "TenXBclToFastq.bcl": '"{0}/{1}"'.format(
+            request.get("bucket"), 
+            request.get("bcl")
+        ),
+        "TenXBclToFastq.sampleSheet": '"gs://{0}/{1}"'.format(
+            bucket_name, 
+            filename
+        ),
+        "TenXBclToFastq.lanes": json.dumps(request.get("lanes")),
+        "TenXBclToFastq.outputDir": '"gs://{0}-ss-lane-subsets"'.format(project),
+        "TenXBclToFastq.outputJson": '"gs://{0}-workflow-outputs/{1}.json"'.format(
+            project, 
+            request.get('subj_id')
+        ),
+        "TenXBclToFastq.dockerImage": '"us-east1-docker.pkg.dev/{0}/lims-tools/bcl_convert:latest"'.format(
+            project
+        ),
+        "TenXBclToFastq.context": json.dumps(request.get("context")),
     }
     
     return configuration

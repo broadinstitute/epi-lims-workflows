@@ -6,7 +6,7 @@ workflows:
 
   - name: "10X-import"
     subclass: WDL
-    primaryDescriptorPath: /wdls/bcl_convert.wdl
+    primaryDescriptorPath: /wdls/10x_imports.wdl
 
   - name: "SHARE-seq-import"
     subclass: WDL
