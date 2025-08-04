@@ -15,7 +15,7 @@ require_script 'submit_jobs'
 #         raise "Error: Unknown species common name"
 #     end
 sequencing_technology = 'SHARE-seq'
-instrument_model = 'NovaSeq'
+instrument_model = 'NovaSeq X'
 
 def sanitize(string)
     return string.gsub(' ', '-').gsub('_','-')

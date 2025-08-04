@@ -2,7 +2,7 @@ require 'json'
 require_script 'submit_jobs'
 
 sequencing_technology = '10X'
-instrument_model = 'NovaSeqXPlus'
+instrument_model = 'NovaSeq X'
 
 # def map_barcode_to_order(str)
 #   char = str[-2].upcase # Get second-to-last character
