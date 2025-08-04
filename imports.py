@@ -1,4 +1,7 @@
 import json
+import os
+from collections import defaultdict
+
 import requests
 from requests.exceptions import HTTPError
 
@@ -209,8 +212,8 @@ def import_lanes(project, username, password, context, outputs):
                 "Flow Cell": outputs["flowcellId"],
                 "Instrument Model": "Illumina " + context["instrumentModel"],
                 "Instrument Name": outputs["instrumentId"],
-                "Run Registration Date": outputs["runDate"],
-                "Run End Date": outputs["runDate"],
+                "Run Registration Date": outputs.get("runDate") or context.get("runDate"),
+                "Run End Date": outputs.get("runDate") or context.get("runDate"),
                 "Lane-of-FC": str(lane_output["lane"]),
                 "Lane Type": lane_type
             }
@@ -293,9 +296,9 @@ def import_bcl_outputs(project, username, password, outputs):
 
 def import_shareseq_import_outputs(project, username, password, outputs):
     # TODO missing Project information
-    print("importing share seq import workflow outputs")
+    print("Importing share seq import workflow outputs")
     print(outputs)
-    print("parsing context")
+    print("Parsing context")
     context = json.loads(outputs["context"])
     print(context)
 
@@ -368,6 +371,107 @@ def import_chipseq_outputs(project, username, password, outputs):
 def import_cnv_outputs(project, username, password, outputs):
     pass
 
+def update_10x_pa(project, username, password, context, outputs):
+    # Update 10X-PA with R1, R2, I1, I2 lengths
+    pool_aliquots = []
+    pool_aliquots.append({
+        "UID": context["poolAliquotUID"],
+        "Read1_Length": outputs["r1Length"],
+        "Read2_Length": outputs["r2Length"],
+        "Index1_i7_Length": outputs["i1Length"],
+        "Index2_i5_Length": outputs["i2Length"],
+    })
+    return import_subjects(project, username, password, "10X-PA", pool_aliquots)
+
+def reshape_10x_fastqs(outputs):
+    for lane in outputs.get("laneOutputs", []):
+        fastqs = lane.get("fastqs", [])
+        library_dict = defaultdict(dict)
+        
+        for path in fastqs:
+            filename = os.path.basename(path)
+            
+            number = filename.split('_')[0].replace("10X-CoPA-", "")
+            library_name = f"10X-CoPA {number}"
+            
+            # Identify read type
+            if "_R1_" in filename:
+                library_dict[library_name]["read1"] = path
+            elif "_R2_" in filename:
+                library_dict[library_name]["read2"] = path
+            elif "_I1_" in filename:
+                library_dict[library_name]["index1"] = path
+            elif "_I2_" in filename:
+                library_dict[library_name]["index2"] = path
+            else:
+                raise ValueError(f"Unrecognized FASTQ filename: {filename}")
+            
+            # Always set the name
+            library_dict[library_name]["name"] = library_name
+        
+        # Replace fastqs with libraryOutputs
+        lane["libraryOutputs"] = list(library_dict.values())
+        lane.pop("fastqs", None)  # remove original fastqs if present
+    
+    return outputs
+
+def import_10x_lane_subsets(project, username, password, context, outputs, lims_lanes):
+    # Query for existing lanes
+    pa_uid = context["poolAliquotUID"]
+    lims_query = "\"10X-CoPA\"->\"10X-PA\"->id = {}".format(pa_uid)
+    udf_names = ["10X-CoPA", "LIMS_Lane"]
+    query_response = query_subjects(project, username, password, "10X-LS", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):
+        lane_subsets = []
+        buffer = []
+        for library_output in lane_output["libraryOutputs"]:
+            buffer.append({
+                "LIMS_Lane": lims_lane,
+                "Reads 1 Filename URI": library_output["read1"],
+                "Reads 2 Filename URI": library_output.get("read2", ''),
+                "Index 1 Filename URI": library_output.get("index1", ''),
+                "Index 2 Filename URI": library_output.get("index2", ''),
+                "10X-CoPA": library_output["name"],
+                # "% PF Clusters (BC)": library_output["percentPfClusters"],
+                # "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
+                # "PF Bases (BC)": library_output["pfBases"],
+                # "PF Fragments (BC)": library_output["pfFragments"],
+                "DEMUX Version": outputs["pipelineVersion"]
+            })
+            search_udfs = {
+                "10X-CoPA": library_output["name"],
+                "LIMS_Lane": lims_lane
+            }
+            uid_dict = check_subjects(parsed_response, search_udfs)
+            buffer[-1].update(uid_dict)
+            if len(buffer) == 10:
+                lane_subsets.append(buffer)
+                buffer = []  # Start a new buffer array
+        if buffer:
+            lane_subsets.append(buffer)
+        for group in lane_subsets:
+            print(import_subjects(project, username, password, "10X-LS", group))
+    return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
+
+
 def import_10x_import_outputs(project, username, password, outputs):
-    # Do nothing
-    pass
+    print("Importing 10x import workflow outputs")
+    print(outputs)
+    print("Parsing context")
+    context = json.loads(outputs["context"])
+    print(context)
+
+    print(update_10x_pa(project, username, password, context, outputs))
+
+    print("Importing LIMS_Lanes")
+    reshape_10x_fastqs(outputs)
+    lims_lanes = import_lanes(
+        project, username, password, context, outputs
+    )
+        
+    print("Importing 10X-Lane Subsets")
+    import_10x_lane_subsets(
+        project, username, password, context, outputs, lims_lanes
+    )
