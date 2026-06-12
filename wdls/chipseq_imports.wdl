@@ -267,7 +267,7 @@ task ExtractBarcodes {
   Int diskSize = ceil(2.1 * bclSize + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-  Float memory = ceil(0.8 * bclSize) * 2.25  # an unusual increase from 0.25 x for black swan
+  Float memory = if ceil(0.8 * bclSize) * 2.25 > 32 then 32.0 else ceil(0.8 * bclSize) * 2.25  # an unusual increase from 0.25 x for black swan
   Int javaMemory = ceil((memory * 0.9) * 1000)
 
   command <<<
@@ -471,7 +471,7 @@ task BasecallsToBams {
   Int diskSize = ceil(2.25 * bclSize + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-  Float memory = ceil(6 * bclSize + 147) * 0.25
+  Float memory = if ceil(6 * bclSize + 147) * 0.25 > 128 then 128.0 else ceil(6 * bclSize + 147) * 0.25 > 96
   Int javaMemory = ceil((memory * 0.9) * 1000)
 
   command <<<
@@ -522,7 +522,7 @@ task BasecallsToBams {
     docker: dockerImage
     disks: "local-disk ~{diskSize} ~{diskType}"
     memory: memory + 'G'
-    cpu: 14
+    cpu: 16
   }
 
   output {
