@@ -471,7 +471,7 @@ task BasecallsToBams {
   Int diskSize = ceil(2.25 * bclSize + 5)
   String diskType = if diskSize > 375 then "SSD" else "LOCAL"
 
-  Float memory = if ceil(6 * bclSize + 147) * 0.25 > 128 then 128.0 else ceil(6 * bclSize + 147) * 0.25 > 96
+  Float memory = if ceil(6 * bclSize + 147) * 0.25 > 128 then 128.0 else ceil(6 * bclSize + 147) * 0.25
   Int javaMemory = ceil((memory * 0.9) * 1000)
 
   command <<<

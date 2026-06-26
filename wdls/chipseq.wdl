@@ -687,7 +687,7 @@ task samtools_sort {
 
     runtime {
         docker: dockerImage
-        disks: 'local-disk ' + ceil(3 + 2.5 * size(bam, 'G')) + ' HDD'
+        disks: 'local-disk ' + ceil(3 + 3.5 * size(bam, 'G')) + ' HDD'
         memory: '16G'
         cpu: cpu
     }
@@ -723,9 +723,10 @@ task picard_mark_duplicates {
     String outBam = 'out.bam'
 
     Float bamSize = size(bam, 'G')
-    Int diskSize = ceil(8.5 + 2 * bamSize)
+    Int diskSize = ceil(8.5 + 2.5 * bamSize)
 
-    Int memSize = ceil(3.5 + 17 * bamSize)
+    Int estimate = ceil(3.5 + 17 * bamSize)
+    Int memSize = if estimate > 64 then 64 else estimate
     Int javeMemMB = ceil((memSize * 0.9) * 1000)
 
     command <<<
@@ -791,7 +792,8 @@ task picard_mark_duplicates_filter {
     Float bamSize = size(bam, 'G')
     Int diskSize = ceil(8.5 + 5 * bamSize)
 
-    Int memSize = ceil(3.5 + 17 * bamSize)
+    Int estimate = ceil(3.5 + 17 * bamSize)
+    Int memSize = if estimate > 64 then 64 else estimate
     Int javeMemMB = ceil((memSize * 0.9) * 1000)
 
     command <<<
