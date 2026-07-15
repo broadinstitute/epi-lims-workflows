@@ -95,6 +95,7 @@ struct Segmentation {
 }
 
 struct Outputs {
+    String workflowType
     Map[String, String] softwareVersions
     Map[String, String] commandOutlines
 
@@ -523,6 +524,7 @@ workflow ChipSeq {
     }
 
     Outputs out = object {
+        workflowType: "chip-seq",
         softwareVersions: get_versions.out,
         commandOutlines: commandOutlines,
         genomeName: genomeName,

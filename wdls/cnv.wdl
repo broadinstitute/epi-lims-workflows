@@ -6,6 +6,7 @@ struct PredictedEpitope {
 }
 
 struct Outputs {
+  String workflowType
   String binnedBed
   Float signalToNoiseRatio
   String? cnvRatiosBed
@@ -355,6 +356,7 @@ task export {
   }
 
   Outputs out = object {
+    workflowType: "cnv",
     binnedBed: outFilesDir + basename(binnedBed),
     signalToNoiseRatio: signalToNoiseRatio,
     cnvRatiosBed: outFilesDir + basename(select_first([cnvRatiosBed])),

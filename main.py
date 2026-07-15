@@ -93,7 +93,7 @@ def format_chipseq_inputs(project, request, configuration):
         "ChipSeq.context": json.dumps(request.get("context")),
         "ChipSeq.dockerImage": '"us.gcr.io/{0}/alignment-tools"'.format(project),
         "ChipSeq.classifierDockerImage": '"us.gcr.io/{0}/classifier"'.format(project),
-        "ChipSeq.outputJsonDir": '"gs://{0}-chipseq-output-jsons"'.format(project),
+        "ChipSeq.outputJsonDir": '"gs://{0}-workflow-outputs"'.format(project),
     }
 
     return configuration
@@ -107,7 +107,7 @@ def format_cnv_inputs(project, request, configuration):
         "CNVAnalysis.context": json.dumps(request.get("context")),
         "CNVAnalysis.dockerImage": '"us.gcr.io/{0}/epi-analysis"'.format(project),
         "CNVAnalysis.outFilesDir": '"gs://{0}-aggregated-alns/"'.format(project),
-        "CNVAnalysis.outJsonDir": '"gs://{0}-cnv-output-jsons/"'.format(project),
+        "CNVAnalysis.outJsonDir": '"gs://{0}-workflow-outputs/"'.format(project),
     }
 
     cnv_ratios_bed = request.get("cnv_ratios_bed")

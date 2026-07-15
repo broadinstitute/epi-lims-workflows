@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import requests
 from requests.exceptions import HTTPError
+from google.cloud import storage as gcs_storage
 
 def chunk_list(lst, chunk_size):
     return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
@@ -87,117 +88,38 @@ def check_subjects(parsed_query, search_udfs):
         return {"UID": matching_subjects[0]}
 
 
-def import_alignments(project, username, password, alignments, ref_seq, commands):
-    lims_alignments = []
-    for alignment in alignments:
-        lims_alignments.append(
-            {
-                # TODO - from context
-                # 'Pipeline': cloudPipeline,
-                # 'Pipeline Version': pipelineVersion,
-                "Aligner": "BWAAlignment",
-                "Command Outline": commands["alignment"],
-                "Reference Sequence": ref_seq,
-                "Lane Subset": alignment["laneSubsetName"],
-                "Read Group": alignment["laneSubsetName"],
-                "Aligned Fragments": alignment["alignedFragments"],
-                "Duplicate Fragments": alignment["duplicateFragments"],
-                "Percent Duplicate Fragments": alignment["percentDuplicateFragments"],
-                "ESTIMATED_LIBRARY_SIZE Picard": alignment["estimatedLibrarySize"],
-            }
-        )
-    return import_subjects(project, username, password, "Alignment", lims_alignments)
+def _copy_gcs_file(src_uri, dst_bucket_name, dst_path):
+    client = gcs_storage.Client()
+    src_bucket_name, src_blob_name = src_uri[5:].split("/", 1)
+    src_bucket = client.bucket(src_bucket_name)
+    src_blob = src_bucket.blob(src_blob_name)
+    src_bucket.copy_blob(src_blob, client.bucket(dst_bucket_name), dst_path)
+    return f"gs://{dst_bucket_name}/{dst_path}"
 
 
-def import_app(
-    project,
-    username,
-    password,
-    app,
-    alignments,
-    lane_subsets,
-    ref_seq,
-    software,
-    commands,
-):
-    return import_subjects(
-        project,
-        username,
-        password,
-        "Alignment Post Processing",
-        {
-            # TODO - from context
-            # 'Pipeline': cloudPipeline,
-            # 'Pipeline_Version': pipelineVersion,
-            "Processing Type": "pool alignments",
-            # TODO - from context
-            # 'Aggregation Type': poolComponentName ? stringify(['Pool Component', 'Library']): 'NA',
-            # 'Aggregation Value': poolComponentName ? stringify([poolComponentName, libraryName]): 'NA',
-            "PicardTools Version": software["picard"],
-            "SAMTools Version": software["samtools"],
-            "Command Outline": commands["alignmentPostProcessing"],
-            "Reference Sequence": ref_seq,
-            "Input Alignments": alignments,
-            "Input_Alignments_SL": alignments.replace(",", ";"),
-            "Input Subjects": alignments,
-            "Read Groups": lane_subsets,
-            # 'Species Common Name': speciesCommonName, # TODO from context
-            # Cell_Types: cellTypes, # TODO from context
-            # Epitopes: epitopes,    # TODO from context
-            "Total Fragments": app["totalFragments"],
-            "Aligned Fragments": app["alignedFragments"],
-            "Duplicate Fragments": app["duplicateFragments"],
-            "Percent Duplicate Fragments": app["percentDuplicateFragments"],
-            "ESTIMATED_LIBRARY_SIZE Picard": app["estimatedLibrarySize"],
-            "RF Top predicted epitope": app["predictedEpitopes"][0]["name"],
-            "RF Top epitope prediction_probability": app["predictedEpitopes"][0][
-                "probability"
-            ],
-            "RF Second predicted epitope": app["predictedEpitopes"][1]["name"],
-            "RF Second epitope prediction_probability": app["predictedEpitopes"][1][
-                "probability"
-            ],
-            "Mitochondrial reads": app["percentMito"],
-            "Vplot Score": app["vplotScore"],
-            # Projects: projectsSet,
-        },
-    )
+def _copy_public_gcs_file(src_uri, dst_bucket_name, dst_path):
+    _copy_gcs_file(src_uri, dst_bucket_name, dst_path)
+    return f"https://storage.googleapis.com/{dst_bucket_name}/{dst_path}"
 
 
-def import_segmentations(
-    project, username, password, segmentations, app_name, software
-):
-    lims_segmentations = []
-    for segmentation in segmentations:
-        lims_segmentations.append(
-            {
-                # 'Pipeline_Version': pipelineVersion,
-                "Segmenter": segmentation["peakStyle"],
-                "Segmenter Version": software["homer"],
-                "Alignment Post Processing": app_name,
-                "Number of Segments": segmentation["segmentCount"],
-                "SPOT": segmentation["spot"],
-                # 'Projects': projectsSet,
-            }
-        )
-    return import_subjects(project, username, password, "Segmentation", lims_segmentations)
+def _get_projects_set(projects):
+    all_projects = []
+    for v in projects.values():
+        all_projects.extend(v if isinstance(v, list) else [v])
+    return sorted(set(all_projects))
 
 
-def import_track(project, username, password, track, app_name, software, commands):
-    return import_subjects(
-        project,
-        username,
-        password,
-        "Track",
-        {
-            # 'Pipeline Version': pipelineVersion,
-            "IGVTools Version": software["igv"],
-            "WigToBigWig Version": software["wigToBigWig"],
-            "Command Outline": commands["track"],
-            "Alignment Post Processing": app_name,
-            # 'Projects': projectsSet,
-        },
-    )
+def _collect_uids(lims_subjects, import_response, key_field):
+    uid_map = {s[key_field]: s["UID"] for s in lims_subjects if "UID" in s}
+    new_ids = import_response.get("ids", "").split(",") if import_response.get("ids") else []
+    new_names = import_response.get("names", "").split(",") if import_response.get("names") else []
+    for name, uid in zip(new_names, new_ids):
+        for s in lims_subjects:
+            if "UID" not in s and s[key_field] not in uid_map:
+                uid_map[s[key_field]] = uid
+                break
+    return uid_map
+
 
 def import_lanes(project, username, password, context, outputs):
     lims_lanes = []
@@ -240,55 +162,6 @@ def import_lanes(project, username, password, context, outputs):
     # )
     all_names = search_names.format(*imported_names).split(',')
     return(all_names)
-
-def import_ss_lane_subsets(project, username, password, context, outputs, lims_lanes):
-    # Query for existing lanes
-    pa_uid = context["poolAliquotUID"]
-    lims_query = "\"SS-CoPA\"->\"SS-PA\"->id = {}".format(pa_uid)
-    udf_names = ["SS-CoPA", "LIMS_Lane"]
-    query_response = query_subjects(project, username, password, "SS-LS", lims_query)
-    print(query_response)
-    parsed_response = parse_query(query_response, udf_names)
-    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):
-        lane_subsets = []
-        buffer = []
-        for library_output in lane_output["libraryOutputs"]:
-            buffer.append({
-                "LIMS_Lane": lims_lane,
-                "Reads 1 Filename URI": library_output["read1"],
-                "Reads 2 Filename URI": library_output["read2"] or '',
-                "SS-CoPA": library_output["name"],
-                "% PF Clusters (BC)": library_output["percentPfClusters"],
-                "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
-                "PF Bases (BC)": library_output["pfBases"],
-                "PF Fragments (BC)": library_output["pfFragments"],
-                "DEMUX Version": outputs["pipelineVersion"]
-            })
-            search_udfs = {
-                "SS-CoPA": library_output["name"],
-                "LIMS_Lane": lims_lane
-            }
-            uid_dict = check_subjects(parsed_response, search_udfs)
-            buffer[-1].update(uid_dict)
-            if len(buffer) == 10:
-                lane_subsets.append(buffer)
-                buffer = []  # Start a new buffer array
-        if buffer:
-            lane_subsets.append(buffer)
-        for group in lane_subsets:
-            print(import_subjects(project, username, password, "SS-LS", group))
-    return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
-
-def update_ss_pa(project, username, password, context, outputs):
-    # Update SS-PA with R1 and R2 lengths
-    # TODO single end runs
-    pool_aliquots = []
-    pool_aliquots.append({
-        "UID": context["poolAliquotUID"],
-        "Read1_Length": outputs["r1Length"],
-        "Read2_Length": outputs["r2Length"]
-    })
-    return import_subjects(project, username, password, "SS-PA", pool_aliquots)
 
 def import_copseqreqs(project, username, password, context, outputs):
     lane_outputs = outputs["laneOutputs"]
@@ -406,6 +279,352 @@ def import_chipseq_import_outputs(project, username, password, outputs):
     ))
 
 
+def import_chipseq_export_outputs(project, username, password, outputs):
+    # Do nothing
+    pass
+
+
+def import_alignments(project, username, password, context, outputs):
+    genome = outputs["genomeName"]
+    ref_seq = f"{genome}_picard"
+    alignments = outputs["alignments"]
+    pipeline_version = context.get("pipelineVersion")
+    projects = context.get("projects", {})
+    
+    lims_query = " OR ".join(
+        f'"Lane Subset"->name = \'{alignment["laneSubsetName"]}\''
+        for alignment in alignments
+    )
+    udf_names = ["Lane Subset", "Reference Sequence"]
+    query_response = query_subjects(project, username, password, "Alignment", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+
+    lims_alignments = []
+    for alignment in alignments:
+        lims_alignments.append({
+            "Pipeline": "cloud",
+            "Pipeline Version": pipeline_version,
+            "Aligner": "BWAAlignment",
+            "Command Outline": outputs["commandOutlines"]["alignment"],
+            "Reference Sequence": ref_seq,
+            "Lane Subset": alignment["laneSubsetName"],
+            "Read Group": alignment["laneSubsetName"],
+            "Aligned Fragments": alignment["alignedFragments"],
+            "Duplicate Fragments": alignment["duplicateFragments"],
+            "Percent Duplicate Fragments": alignment["percentDuplicateFragments"],
+            "ESTIMATED_LIBRARY_SIZE Picard": alignment["estimatedLibrarySize"],
+            "Projects": projects.get(alignment["laneSubsetName"], []),
+        })
+        uid_dict = check_subjects(parsed_response, {
+            "Lane Subset": alignment["laneSubsetName"],
+            "Reference Sequence": ref_seq,
+        })
+        lims_alignments[-1].update(uid_dict)
+
+    uid_names = {str(d['id']): d['name'] for d in query_response['Subjects']}
+    search_uids = [a.get('UID', '{}') for a in lims_alignments]
+    search_names = ','.join([uid_names.get(uid, '{}') for uid in search_uids])
+    import_response = import_subjects(project, username, password, "Alignment", lims_alignments)
+    print(import_response)
+    imported_names = import_response['names'].split(',')
+    alignment_names = search_names.format(*imported_names).split(',')
+
+    lane_alns_bucket = f"{project}-lane-alns"
+    uid_map = _collect_uids(lims_alignments, import_response, "Lane Subset")
+    alignment_updates = []
+    for name, alignment in zip(alignment_names, alignments):
+        uid = uid_map.get(alignment["laneSubsetName"])
+        id = f"{int(name.split()[-1]):06d}"
+        bam_uri = _copy_gcs_file(alignment["bam"], lane_alns_bucket, f"lane_aln_{id}.bam")
+        _copy_gcs_file(alignment["bai"], lane_alns_bucket, f"lane_aln_{id}.bai")
+        alignment_updates.append({"UID": uid, "BAM Filename URI": bam_uri})
+
+    print(import_subjects(project, username, password, "Alignment", alignment_updates))
+    return alignment_names
+
+def import_app(project, username, password, context, outputs, alignment_names):
+    genome = outputs["genomeName"]
+    ref_seq = f"{genome}_picard"
+    app = outputs["alignmentPostProcessing"]
+    pipeline_version = context.get("pipelineVersion")
+    projects_set = _get_projects_set(context.get("projects", {}))
+    predicted_epitopes = app.get("predictedEpitopes")
+
+    input_alignments = ";".join(alignment_names)
+    read_groups = ",".join(a["laneSubsetName"] for a in outputs["alignments"])
+
+    agg = context.get("aggregation")
+    if genome == "hg19" and agg and agg.get("type") == "Pool_Component":
+        library_name = outputs["alignments"][0]["libraryName"]
+        aggregation_type = json.dumps(["Pool Component", "Library"])
+        aggregation_value = json.dumps([agg["name"], library_name])
+    else:
+        aggregation_type = "NA"
+        aggregation_value = "NA"
+    
+    lims_query = " AND ".join(
+        f'"Input_Alignments_SL" = \'{alignment}\''
+        for alignment in alignment_names
+    )
+    udf_names = ["Input Alignments"]
+    query_response = query_subjects(project, username, password, "Alignment Post Processing", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+
+    app_subject = {
+        "Pipeline": "cloud",
+        "Pipeline Version": pipeline_version,
+        "Processing Type": "pool alignments",
+        "Aggregation Type": aggregation_type,
+        "Aggregation Value": aggregation_value,
+        "PicardTools Version": outputs["softwareVersions"]["picard"],
+        "SAMTools Version": outputs["softwareVersions"]["samtools"],
+        "Command Outline": outputs["commandOutlines"]["alignmentPostProcessing"],
+        "Reference Sequence": ref_seq,
+        "Input Alignments": input_alignments,
+        "Input_Alignments_SL": alignment_names,
+        "Input Subjects": input_alignments,
+        "Read Groups": read_groups,
+        "Species Common Name": context.get("speciesCommonName"),
+        "Cell Types": context.get("cellTypes"),
+        "Epitopes": context.get("epitopes"),
+        "Total Fragments": app["totalFragments"],
+        "Aligned Fragments": app["alignedFragments"],
+        "Duplicate Fragments": app["duplicateFragments"],
+        "Percent Duplicate Fragments": app["percentDuplicateFragments"],
+        "ESTIMATED_LIBRARY_SIZE Picard": app["estimatedLibrarySize"],
+        "Mitochondrial reads": app["percentMito"],
+        "Vplot Score": app.get("vplotScore"),
+        "Projects": projects_set,
+    }
+    if predicted_epitopes:
+        app_subject["RF Top predicted epitope"] = predicted_epitopes[0]["name"]
+        app_subject["RF Top epitope prediction probability"] = predicted_epitopes[0]["probability"]
+        app_subject["RF Second predicted epitope"] = predicted_epitopes[1]["name"]
+        app_subject["RF Second epitope prediction probability"] = predicted_epitopes[1]["probability"]
+
+    uid_dict = check_subjects(parsed_response, {"Input Alignments": input_alignments})
+    app_subject.update(uid_dict)
+
+    uid_names = {str(d['id']): d['name'] for d in query_response['Subjects']}
+    search_uid = app_subject.get('UID', '{}')
+    search_name = uid_names.get(search_uid, '{}')
+    import_response = import_subjects(project, username, password, "Alignment Post Processing", [app_subject])
+    print(import_response)
+    imported_names = import_response['names'].split(',')
+    app_name = search_name.format(*imported_names) if '{}' in str(search_name) else search_name
+
+    existing_uid = app_subject.get("UID")
+    new_ids = import_response.get("ids", "").split(",") if import_response.get("ids") else []
+    app_uid = existing_uid or (new_ids[0] if new_ids else None)
+
+    agg_alns_bucket = f"{project}-aggregated-alns"
+    reports_bucket = f"{project}-reports"
+
+    id = f"{int(app_name.split()[-1]):06d}"
+    bam_uri = _copy_gcs_file(app["bam"], agg_alns_bucket, f"aggregated_aln_{id}.bam")      
+    _copy_gcs_file(app["bai"], agg_alns_bucket, f"aggregated_aln_{id}.bai")
+
+    app_update = {"UID": app_uid, "BAM_Filename_URI": bam_uri}
+
+    if app.get("fingerprintFile"):
+        app_update["Genotyping Fingerprint URI"] = _copy_gcs_file(
+            app["fingerprintFile"], agg_alns_bucket, f"aggregated_aln_{id}.fingerprint.bam")
+        app_update["Genotyping Fingerprint Self LOD"] = app.get("fingerprintSelfLOD")
+
+    if app.get("insertSizeHistogram"):
+        app_update["InsertSizeMetrics"] = _copy_public_gcs_file(
+            app["insertSizeHistogram"], reports_bucket, f"aggregated_aln_{id}.histogram.pdf")
+
+    if app.get("vplot"):
+        app_update["Vplot"] = _copy_public_gcs_file(
+            app["vplot"], reports_bucket, f"aggregated_aln_{id}.vplot.png")
+
+    print(import_subjects(project, username, password, "Alignment Post Processing", [app_update]))
+    return app_name
+
+def import_segmentations(project, username, password, context, outputs, app_name):
+    segmentations = outputs["segmentations"]
+    pipeline_version = context.get("pipelineVersion")
+    projects_set = _get_projects_set(context.get("projects", {}))
+
+    lims_query = "\"Alignment Post Processing\"->name = '{}'".format(app_name)
+    udf_names = ["Alignment Post Processing", "Segmenter"]
+    query_response = query_subjects(project, username, password, "Segmentation", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+
+    lims_segs = []
+    for seg in segmentations:
+        lims_segs.append({
+            "Pipeline Version": pipeline_version,
+            "Segmenter": seg["peakStyle"],
+            "Segmenter Version": outputs["softwareVersions"]["homer"],
+            "Alignment Post Processing": app_name,
+            "Number of Segments": seg["segmentCount"],
+            "SPOT": seg["spot"],
+            "Projects": projects_set,
+        })
+        uid_dict = check_subjects(parsed_response, {
+            "Alignment Post Processing": app_name,
+            "Segmenter": seg["peakStyle"],
+        })
+        lims_segs[-1].update(uid_dict)
+
+    uid_names = {str(d['id']): d['name'] for d in query_response['Subjects']}
+    search_uids = [s.get('UID', '{}') for s in lims_segs]
+    search_names = ','.join([uid_names.get(uid, '{}') for uid in search_uids])
+    import_response = import_subjects(project, username, password, "Segmentation", lims_segs)
+    print(import_response)
+    imported_names = import_response['names'].split(',')
+    seg_names = search_names.format(*imported_names).split(',')
+
+    segs_bucket = f"{project}-segmentations"
+    uid_map = _collect_uids(lims_segs, import_response, "Segmenter")
+    seg_updates = []
+    for name, seg in zip(seg_names, segmentations):
+        uid = uid_map.get(seg["peakStyle"])
+        id = f"{int(name.split()[-1]):06d}"
+        bed_uri = _copy_gcs_file(seg["bed"], segs_bucket, f"segmentation_{id}.bed")
+        seg_updates.append({"UID": uid, "BED Filename URI": bed_uri})
+
+    print(import_subjects(project, username, password, "Segmentation", seg_updates))
+
+def import_track(project, username, password, context, outputs, app_name):
+    track = outputs["track"]
+    genome = outputs["genomeName"]
+    pipeline_version = context.get("pipelineVersion")
+    projects_set = _get_projects_set(context.get("projects", {}))
+    agg = context.get("aggregation")
+
+    lims_query = "\"Alignment Post Processing\"->name = '{}'".format(app_name)
+    udf_names = ["Alignment Post Processing"]
+    query_response = query_subjects(project, username, password, "Track", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+
+    track_subject = {
+        "Pipeline Version": pipeline_version,
+        "IGVTools Version": outputs["softwareVersions"]["igv"],
+        "WigToBigWig Version": outputs["softwareVersions"]["wigToBigWig"],
+        "Command Outline": outputs["commandOutlines"]["track"],
+        "Alignment Post Processing": app_name,
+        "Projects": projects_set,
+    }
+    uid_dict = check_subjects(parsed_response, {"Alignment Post Processing": app_name})
+    track_subject.update(uid_dict)
+
+    uid_names = {str(d['id']): d['name'] for d in query_response['Subjects']}
+    search_uid = track_subject.get('UID', '{}')
+    search_name = uid_names.get(search_uid, '{}')
+    import_response = import_subjects(project, username, password, "Track", [track_subject])
+    print(import_response)
+    imported_names = import_response['names'].split(',')
+    track_name = search_name.format(*imported_names) if '{}' in str(search_name) else search_name
+
+    existing_uid = track_subject.get("UID")
+    new_ids = import_response.get("ids", "").split(",") if import_response.get("ids") else []
+    track_uid = existing_uid or (new_ids[0] if new_ids else None)
+
+    tracks_bucket = f"{project}-tracks"
+    id = f"{int(track_name.split()[-1]):06d}"
+    bw_uri = _copy_gcs_file(track["bigWig"], tracks_bucket, f"track_{id}.bw")
+    tdf_uri = _copy_gcs_file(track["tdf"], tracks_bucket, f"track_{id}.tdf")
+
+    print(import_subjects(project, username, password, "Track", [{
+        "UID": track_uid, 
+        "BigWig Filename URI": bw_uri, 
+        "TDF Filename URI": tdf_uri
+    }]))
+
+    if genome in ["hg19", "mm10"] and agg:
+        print(import_subjects(project, username, password, agg["type"], [
+            {"UID": str(agg["uid"]), "Track": track_name}
+        ]))
+
+def import_chipseq_outputs(project, username, password, outputs):
+    print("Importing chip-seq workflow outputs")
+    print(outputs)
+    print("Parsing context")
+    context = json.loads(outputs["context"])
+    alignment_names = import_alignments(project, username, password, context, outputs)
+    app_name = import_app(project, username, password, context, outputs, alignment_names)
+    import_segmentations(project, username, password, context, outputs, app_name)
+    import_track(project, username, password, context, outputs, app_name)
+    # TODO: auto-launch CNV workflow when app_info["epitopes"] == "WCE"
+
+
+def import_cnv_outputs(project, username, password, outputs):
+    context = json.loads(outputs["context"])
+    predicted_epitopes = outputs.get("predictedEpitopes")
+    app_update = {
+        "UID": context["uid"],
+        "Input Control": context.get("inputControlName"),
+        "SNR": outputs.get("signalToNoiseRatio"),
+        "CNV Binned BED URI": outputs.get("binnedBed"),
+        "CNV Ratios BED URI": outputs.get("cnvRatiosBed"),
+        "CNVs Detected": "Yes" if outputs.get("cnvsDetected") else "No",
+        "Fitting Parameters URI": outputs.get("fittingParams"),
+        "PBS BED URI": outputs.get("pbsBed"),
+    }
+    if predicted_epitopes:
+        app_update["CNV Top predicted epitope"] = predicted_epitopes[0]["name"]
+        app_update["CNV Top epitope prediction probability"] = predicted_epitopes[0]["probability"]
+        app_update["CNV Second predicted epitope"] = predicted_epitopes[1]["name"]
+        app_update["CNV Second epitope prediction probability"] = predicted_epitopes[1]["probability"]
+    print(import_subjects(project, username, password, "Alignment Post Processing", [app_update]))
+
+
+def import_ss_lane_subsets(project, username, password, context, outputs, lims_lanes):
+    # Query for existing lanes
+    pa_uid = context["poolAliquotUID"]
+    lims_query = "\"SS-CoPA\"->\"SS-PA\"->id = {}".format(pa_uid)
+    udf_names = ["SS-CoPA", "LIMS_Lane"]
+    query_response = query_subjects(project, username, password, "SS-LS", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):
+        lane_subsets = []
+        buffer = []
+        for library_output in lane_output["libraryOutputs"]:
+            buffer.append({
+                "LIMS_Lane": lims_lane,
+                "Reads 1 Filename URI": library_output["read1"],
+                "Reads 2 Filename URI": library_output["read2"] or '',
+                "SS-CoPA": library_output["name"],
+                "% PF Clusters (BC)": library_output["percentPfClusters"],
+                "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
+                "PF Bases (BC)": library_output["pfBases"],
+                "PF Fragments (BC)": library_output["pfFragments"],
+                "DEMUX Version": outputs["pipelineVersion"]
+            })
+            search_udfs = {
+                "SS-CoPA": library_output["name"],
+                "LIMS_Lane": lims_lane
+            }
+            uid_dict = check_subjects(parsed_response, search_udfs)
+            buffer[-1].update(uid_dict)
+            if len(buffer) == 10:
+                lane_subsets.append(buffer)
+                buffer = []  # Start a new buffer array
+        if buffer:
+            lane_subsets.append(buffer)
+        for group in lane_subsets:
+            print(import_subjects(project, username, password, "SS-LS", group))
+    return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
+
+def update_ss_pa(project, username, password, context, outputs):
+    # Update SS-PA with R1 and R2 lengths
+    # TODO single end runs
+    pool_aliquots = []
+    pool_aliquots.append({
+        "UID": context["poolAliquotUID"],
+        "Read1_Length": outputs["r1Length"],
+        "Read2_Length": outputs["r2Length"]
+    })
+    return import_subjects(project, username, password, "SS-PA", pool_aliquots)
+
 def import_shareseq_import_outputs(project, username, password, outputs):
     # TODO missing Project information
     print("Importing share seq import workflow outputs")
@@ -426,62 +645,11 @@ def import_shareseq_import_outputs(project, username, password, outputs):
         project, username, password, context, outputs, lims_lanes
     )
 
+
 def import_shareseq_proto_outputs(project, username, password, outputs):
     # Do nothing
     pass
 
-def import_chipseq_export_outputs(project, username, password, outputs):
-    # Do nothing
-    pass
-
-def import_chipseq_outputs(project, username, password, outputs):
-    # Parse Cromwell job outputs
-    genome = outputs["genomeName"]
-    commands = outputs["commandOutlines"]
-    software = outputs["softwareVersions"]
-    ref_seq = "{0}_picard".format(genome)
-
-    # Import Alignments into LIMS
-    print("Importing Alignments")
-    lims_alignments = import_alignments(
-        project, username, password, outputs["alignments"], ref_seq, commands
-    )
-
-    # Import APP into LIMS
-    print("Importing APP")
-    input_alignments = lims_alignments["names"]
-    read_groups = ",".join(map(lambda a: a["laneSubsetName"], outputs["alignments"]))
-    lims_app = import_app(
-        project,
-        username,
-        password,
-        outputs["alignmentPostProcessing"],
-        input_alignments,
-        read_groups,
-        ref_seq,
-        software,
-        commands,
-    )
-
-    # Import Segmentations into LIMS
-    print("Importing Segmentations")
-    app_name = lims_app["names"]
-    import_segmentations(
-        project, username, password, outputs["segmentations"], app_name, software
-    )
-
-    # Import Track into LIMS
-    print("Importing Track")
-    import_track(
-        project, username, password, outputs["track"], app_name, software, commands
-    )
-
-    # TODO Copy files to buckets
-    # TODO Launch CNV for WCEs
-
-
-def import_cnv_outputs(project, username, password, outputs):
-    pass
 
 def update_10x_pa(project, username, password, context, outputs):
     # Update 10X-PA with R1, R2, I1, I2 lengths
@@ -566,7 +734,6 @@ def import_10x_lane_subsets(project, username, password, context, outputs, lims_
         for group in lane_subsets:
             print(import_subjects(project, username, password, "10X-LS", group))
     return lane_subsets#import_subjects(project, username, password, "SS-LS", lane_subsets)
-
 
 def import_10x_import_outputs(project, username, password, outputs):
     print("Importing 10x import workflow outputs")
