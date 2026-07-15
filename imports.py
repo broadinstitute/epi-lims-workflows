@@ -5,6 +5,8 @@ from collections import defaultdict
 import requests
 from requests.exceptions import HTTPError
 
+def chunk_list(lst, chunk_size):
+    return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
 def import_subjects(project, username, password, subject_type, data):
     project = "dev-" if "dev" in project else ""
@@ -61,7 +63,9 @@ def parse_query(response, udf_names):
         udf_values = {}
         for udf in subject["udfs"]:
             if udf["name"] in udf_names:
-                if isinstance(udf["value"], dict):
+                if "subject_count" in udf:
+                    udf_values[udf["name"]] = udf["subject_count"]
+                elif isinstance(udf["value"], dict):
                     udf_values[udf["name"]] = udf["value"]["name"]
                 else:
                     udf_values[udf["name"]] = udf["value"]
@@ -286,12 +290,120 @@ def update_ss_pa(project, username, password, context, outputs):
     })
     return import_subjects(project, username, password, "SS-PA", pool_aliquots)
 
-def import_bcl_outputs(project, username, password, outputs):
-    # Import Lanes, CopSeqReqs, LaneSubsets
-    # Can likely use import_lanes above for this function
-    # Update Pool Aliquot
-    # Launch ChipSeq workflow?
-    pass
+def import_copseqreqs(project, username, password, context, outputs):
+    lane_outputs = outputs["laneOutputs"]
+    copas = [library_output['name'] for library_output in lane_outputs[0]['libraryOutputs']]
+    num_lanes = len(lane_outputs)
+    
+    seq_tech = context["sequencingTechnology"]
+    seq_tech_project = "HiSeq_Mint_ChIP" if seq_tech == "Mint-ChIP" else "HiSeq_ChIP"
+    
+    # Query for existing CoPSeqReqs
+    quoted_copas = ",".join(f"'{copa}'" for copa in copas)
+    lims_query = "\"CoPA\"->name = ({})".format(quoted_copas)
+    udf_names = ["CoPA"]
+    query_response = query_subjects(project, username, password, "CoPSeqReq", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+    copseqreqs = []
+    for copa in copas:
+        copseqreqs.append({
+            "CoPA": copa,
+            "Number of Lanes Requested": num_lanes,
+            "Sequencing Center Project": seq_tech_project,
+            "Projects": context["projects"].get(copa)
+        })
+        search_udfs = {
+            "CoPA": copa,
+        }
+        uid_dict = check_subjects(parsed_response, search_udfs)
+        copseqreqs[-1].update(uid_dict)
+    imported_names = []
+    batches = chunk_list(copseqreqs, 10)
+    for group in batches:
+        import_response = import_subjects(project, username, password, "CoPSeqReq", group)
+        print(import_response)
+        if import_response['names']:  # Only extend if names is not empty
+            imported_names.extend(import_response['names'].split(','))
+    uid_names = {str(d['id']): d['name'] for d in query_response['Subjects']}
+    search_uids = [d.get('UID', '{}') for d in copseqreqs]
+    search_names = ','.join([uid_names.get(uid, '{}') for uid in search_uids])
+    all_names = search_names.format(*imported_names).split(',')
+    return all_names
+
+def import_lane_subsets(project, username, password, context, outputs, lims_lanes, copseqreqs):
+    # Query for existing lanes
+    pa_uid = context["poolAliquotUID"]
+    read_length = outputs["meanReadLength"]
+    projects = context["projects"]
+    lims_query = "\"Component of Pooled SeqReq\"->\"CoPA\"->\"Pool Aliquot\"->id = {}".format(pa_uid)
+    udf_names = ["Component of Pooled SeqReq", "LIMS_Lane"]
+    query_response = query_subjects(project, username, password, "Lane Subset", lims_query)
+    print(query_response)
+    parsed_response = parse_query(query_response, udf_names)
+    for lane_output, lims_lane in zip(outputs["laneOutputs"], lims_lanes):
+        lane_subsets = []
+        buffer = []
+        for library_output, copseqreq in zip(lane_output["libraryOutputs"], copseqreqs):
+            coPA = library_output["name"]
+            buffer.append({
+                "LIMS_Lane": lims_lane,
+                "Component of Pooled SeqReq": copseqreq,
+                "Reads 1 Filename URI": library_output["read1"],
+                "Reads 2 Filename URI": library_output["read2"] or '',
+                "Avg Read Length": read_length,
+                "% PF Clusters (BC)": library_output["percentPfClusters"],
+                "Avg Clusters per Tile (BC)": library_output["meanClustersPerTile"],
+                "PF Bases (BC)": library_output["pfBases"],
+                "PF Fragments (BC)": library_output["pfFragments"],
+                "Projects": projects[coPA]
+            })
+            search_udfs = {
+                "Component of Pooled SeqReq": copseqreq,
+                "LIMS_Lane": lims_lane
+            }
+            uid_dict = check_subjects(parsed_response, search_udfs)
+            buffer[-1].update(uid_dict)
+            if len(buffer) == 10:
+                lane_subsets.append(buffer)
+                buffer = []  # Start a new buffer array
+        if buffer:
+            lane_subsets.append(buffer)
+        for group in lane_subsets:
+            print(import_subjects(project, username, password, "Lane Subset", group))
+    return lane_subsets#import_subjects(project, username, password, "Lane Subset", lane_subsets)
+
+def update_pa(project, username, password, context, outputs):
+    pool_aliquots = []
+    pool_aliquots.append({
+        "UID": context["poolAliquotUID"],
+        "HiSeqRun": outputs["runId"],
+        "HiSeq Experiment Name": context["experimentName"],
+        "HiSeq Folder Name": context["folderName"],
+        "M-PF Fragments (BC)/lane": outputs["mPfFragmentsPerLane"],
+        "Picard MAX_MISMATCHES": outputs["maxMismatches"],
+        "Picard MIN_MISMATCH_DELTA": outputs["minMismatchDelta"],
+    })
+    return import_subjects(project, username, password, "Pool Aliquot", pool_aliquots)
+
+def import_chipseq_import_outputs(project, username, password, outputs):
+    # TODO missing Project information
+    print("Importing chip seq import workflow outputs")
+    print(outputs)
+    print("Parsing context")
+    context = json.loads(outputs["context"])
+    print(context)
+    print(update_pa(project, username, password, context, outputs))
+    print("Importing LIMS_Lanes")
+    lims_lanes = import_lanes(
+        project, username, password, context, outputs
+    )
+    
+    copseqreqs = import_copseqreqs(project, username, password, context, outputs)
+    print("Importing Lane Subsets")
+    return(import_lane_subsets(
+        project, username, password, context, outputs, lims_lanes, copseqreqs
+    ))
 
 
 def import_shareseq_import_outputs(project, username, password, outputs):

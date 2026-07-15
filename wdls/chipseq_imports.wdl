@@ -42,6 +42,7 @@ struct LaneOutput {
 }
 
 struct PipelineOutputs {
+  String workflowType
   Array[LaneOutput] laneOutputs
   Float meanReadLength
   Float mPfFragmentsPerLane
@@ -184,6 +185,7 @@ workflow BclToFastq {
     }
 
     PipelineOutputs outputs = object {
+      workflowType: "chip-seq-import",
       laneOutputs: laneOutput,
       meanReadLength: BasecallMetrics.meanReadLength[0],
       mPfFragmentsPerLane: AggregatePfFragments.mPfFragmentsPerLane,

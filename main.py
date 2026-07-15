@@ -261,7 +261,7 @@ wdls = {
 }
 
 workflow_parsers = {
-    "chip-seq-import": imports.import_bcl_outputs,
+    "chip-seq-import": imports.import_chipseq_import_outputs,
     "chip-seq": imports.import_chipseq_outputs,
     "chip-seq-export": imports.import_chipseq_export_outputs,
     "cnv": imports.import_cnv_outputs,

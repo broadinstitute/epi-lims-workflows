@@ -42,7 +42,7 @@ pipelines = subjects.map do |pa|
     multiplexParams: multiplexParams,
     maxMismatches: run_params[:max_mismatches],
     minMismatchDelta: run_params[:min_mismatch_delta],
-    outputJson: "gs://broad-epi-bcl-output-jsons/#{pa.id}.json",
+    outputJson: "gs://broad-epi-workflow-outputs/#{pa.id}.json",
     context: {
       poolAliquotUID: pa.id,
       projects: projects,
