@@ -80,9 +80,12 @@ curl -sH "Authorization: Bearer ${CLOUDBUILD_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{}"
 
-# TODO add comment for this
-# TODO use google account ID var and replace cloudbuild SA with var
+# Allow CloudBuild SA to deploy functions that run as FUNCTION_SA or CROMWELL_SA
 gcloud iam service-accounts add-iam-policy-binding $FUNCTION_SA \
+    --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+    --role roles/iam.serviceAccountUser
+
+gcloud iam service-accounts add-iam-policy-binding $CROMWELL_SA \
     --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
     --role roles/iam.serviceAccountUser
 
@@ -193,14 +196,19 @@ gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:$EVENTARC_SA" \
   --role "roles/run.invoker"
 
-# Give Cloud Functions SA permission to receive events from EventArc
+# Give cromwell-launcher SA (FUNCTION_SA) permission to write WDL/input files to GCS
 gcloud projects add-iam-policy-binding $PROJECT \
   --member "serviceAccount:$FUNCTION_SA" \
+  --role "roles/storage.objectCreator"
+
+# Give on-workflow-done SA (CROMWELL_SA) permission to receive EventArc events
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member "serviceAccount:$CROMWELL_SA" \
   --role "roles/eventarc.eventReceiver"
 
-# Give Cloud Functions SA permission to write to bucket
+# Give on-workflow-done SA (CROMWELL_SA) permission to copy files to project buckets
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member "serviceAccount:$FUNCTION_SA" \
+  --member "serviceAccount:$CROMWELL_SA" \
   --role "roles/storage.objectCreator"
 
 # Get LIMS api user username/password	
@@ -219,7 +227,7 @@ gcloud functions deploy on-workflow-done \
     --entry-point=on_workflow_done \
     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
     --trigger-event-filters="bucket=$PROJECT-workflow-outputs" \
-    --service-account=$FUNCTION_SA \
+    --service-account=$CROMWELL_SA \
     --ingress-settings internal-only \
     --vpc-connector workflow-vpc-connector \
     --egress-settings all \
