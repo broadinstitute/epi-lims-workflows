@@ -923,22 +923,28 @@ task genotyping_fingerprint {
         set -euo pipefail
 
         count=$(samtools view -c -f 1 '~{bam}')
+        
+        samtools view -h -F 1024 -u '~{bam}' |
+        samtools sort -@~{cpu} -n -o 'dedup.bam'
+        
+        rm '~{bam}'
+        
         if [ "$count" -eq "0" ]; then
             bed_cmd='intersectBed -wa'
         else
             bed_cmd='pairToBed'
         fi
-        samtools sort -@~{cpu} -n '~{bam}' |
-        ${bed_cmd} -abam stdin -b '/opt/genotyping/~{genomeName}_nochr.bed' |
+        ${bed_cmd} -abam 'dedup.bam' -b '/opt/genotyping/~{genomeName}_nochr.bed' |
         samtools sort -@~{cpu} -o 'sorted.bam'
+        rm 'dedup.bam'
 
-        java -Xmx~{javaMemory}m -jar /opt/picard.jar \
-            MarkDuplicates \
-                INPUT='sorted.bam' \
-                OUTPUT='out.bam' \
-                METRICS_FILE='metrics.txt' \
-                REMOVE_DUPLICATES=TRUE \
-                VALIDATION_STRINGENCY=SILENT
+        # java -Xmx~{javaMemory}m -jar /opt/picard.jar \
+        #     MarkDuplicates \
+        #         INPUT='sorted.bam' \
+        #         OUTPUT='out.bam' \
+        #         METRICS_FILE='metrics.txt' \
+        #         REMOVE_DUPLICATES=TRUE \
+        #         VALIDATION_STRINGENCY=SILENT
 
         samtools reheader \
             -c 'sed -E "s|(\tSM:)[^\t]+|\1~{donor}|"' 'sorted.bam' \
@@ -959,7 +965,7 @@ task genotyping_fingerprint {
 
     runtime {
         docker: dockerImage
-        disks: 'local-disk ' + ceil(3 * bamSize + 6) + ' HDD'
+        disks: 'local-disk ' + ceil(4 * bamSize + 6) + ' HDD'
         memory: memory + 'G'
         cpu: cpu
     }
