@@ -538,7 +538,7 @@ def import_track(project, username, password, context, outputs, app_name):
         "TDF Filename URI": tdf_uri
     }]))
 
-    if genome in ["hg19", "mm10"] and agg:
+    if genome in ["hg38", "mm10"] and agg:
         print(import_subjects(project, username, password, agg["type"], [
             {"UID": str(agg["uid"]), "Track": track_name}
         ]))
