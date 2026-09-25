@@ -53,4 +53,5 @@ gcloud compute routers nats create workflow-nat-config \
     --nat-external-ip-pool=workflow-static-ip \
     --nat-all-subnet-ip-ranges \
     --router-region=$REGION \
-    --enable-logging
+    --enable-logging \
+    --tcp-time-wait-timeout=120
