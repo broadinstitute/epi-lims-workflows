@@ -165,6 +165,7 @@ task BclConvert {
 
     output {
         Array[File] fastqs = glob("fastq/*fastq.gz")
+        Array[File] reports = glob("fastq/Reports/*")
         Int runId = read_int("~{runIdFile}")
         String flowcellId = read_string("~{flowcellIdFile}")
         String instrumentId = read_string("~{instrumentIdFile}")
