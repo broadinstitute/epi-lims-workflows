@@ -101,7 +101,7 @@ workflow BclToFastq {
     'time tar xf "~{basename(bcl)}" --exclude Images --exclude Thumbnail_Images && ' +
     'rm "~{basename(bcl)}"'
 
-  String cloudSdkImage = "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+  String cloudSdkImage = "gcr.io/google.com/cloudsdktool/cloud-sdk:588.0.0-alpine"
 
   call GetVersion {
     input:
