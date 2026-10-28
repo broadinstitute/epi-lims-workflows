@@ -19,7 +19,7 @@ req = subjects.flat_map do |subject|
   # Add aggregation to context
   aggregation = {
     name: subject.name,
-    type: 'Pool_Component',
+    type: 'Pool Component',
     uid: subject.id
   }
 
